@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>阿鹿鹿文創-鹿鹿迷宮 GO！</title>
+  <title>阿鹿鹿文創-精靈鹿鹿 GO！</title>
 
   <style>
     :root{
@@ -18,16 +18,16 @@
       --btn:#111;
       --btnText:#fff;
 
-      /* (3) 地圖底：暗淡泥土黃色系（含淡斑） */
-      --mapBase:#D8C07A;     /* 泥土黃 */
-      --mapSpot:#B28B5E;     /* 淡紅棕 */
+      /* 地圖底：暗淡泥土黃色系（含淡斑） */
+      --mapBase:#D8C07A;
+      --mapSpot:#B28B5E;
 
-      /* 牆：黃底＋紅棕斑/條紋＋黑棕邊框（明顯） */
+      /* 牆：黃底＋紅棕條紋＋黑棕邊框（明顯） */
       --wallBase:#FFD46A;
-      --wallSpot:#B2562E;   /* 紅棕 */
-      --wallBorder:#2B1A12; /* 黑棕邊框 */
+      --wallStripe:#B2562E;
+      --wallBorder:#2B1A12;
 
-      /* 嫩葉要更鮮綠 */
+      /* 嫩葉 */
       --leaf1:#1BFF6B;
       --leaf2:#00B84D;
 
@@ -191,6 +191,7 @@
       display:flex;
       align-items:center;
       justify-content:center;
+      position:relative;
     }
     canvas{
       width:100%;
@@ -203,6 +204,38 @@
       display:block;
       touch-action:none;
       image-rendering: pixelated;
+    }
+
+    /* (3) 倒數 overlay */
+    .countdown{
+      position:absolute;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+    }
+    .countdown .bubble{
+      background: rgba(0,0,0,.45);
+      border:1px solid rgba(255,255,255,.18);
+      border-radius: 22px;
+      padding: 18px 22px;
+      box-shadow: 0 16px 60px rgba(0,0,0,.35);
+      min-width: 160px;
+      text-align:center;
+    }
+    .countdown .n{
+      font-weight:1000;
+      font-size:64px;
+      line-height:1;
+      color:#fff;
+      text-shadow: 0 6px 22px rgba(0,0,0,.35);
+    }
+    .countdown .t{
+      margin-top:8px;
+      font-size:13px;
+      color: rgba(255,255,255,.9);
+      letter-spacing:.08em;
     }
 
     /* ===== Bottom dpad ===== */
@@ -366,6 +399,14 @@
     <!-- ===== Game ===== -->
     <div class="gameWrap">
       <canvas id="game" width="840" height="510"></canvas>
+
+      <!-- (3) Start countdown -->
+      <div class="countdown" id="countdown">
+        <div class="bubble">
+          <div class="n" id="cdNum">3</div>
+          <div class="t">準備開始</div>
+        </div>
+      </div>
     </div>
 
     <!-- ===== D-pad ===== -->
@@ -377,7 +418,7 @@
     </div>
   </div>
 
-  <!-- ===== HELP Overlay (開局自動顯示 + 開啟會暫停) ===== -->
+  <!-- ===== HELP Overlay ===== -->
   <div class="overlay" id="helpOverlay">
     <div class="modal">
       <div class="modalTitle">阿鹿鹿文創-鹿鹿迷宮 GO！｜玩法</div>
@@ -392,9 +433,9 @@
         💥 <b>失敗：</b>非強化時碰到敵人：<b>-1 生命</b>並重生。<br/>
         ✨ <b>重生無敵：</b>每次重生後有 <b>3 秒無敵</b>（你身上會有 <b>特殊光亮</b>，避免剛重生就被碰到）。<br/><br/>
         🏃 <b>速度說明：</b><br/>
-        ・玩家速度：<b>固定</b>（不會因強化而加速）。<br/>
-        ・敵人速度：開局為玩家的 <b>75%</b>，會隨遊戲時間逐步增加，但上限 <b>不超過玩家 95%</b>。<br/>
-        ・弱化（強化期間）敵人速度：會再降低（更好反吃）。<br/>
+        ・玩家速度：<b>固定</b>。<br/>
+        ・敵人速度：開局為玩家的 <b>75%</b>，會隨遊戲時間逐步增加，上限 <b>不超過玩家 95%</b>。<br/>
+        ・弱化（強化期間）敵人速度：會再降低。<br/>
       </div>
       <div class="modalBtns">
         <button class="mBtn" id="helpClose">關閉</button>
@@ -455,14 +496,6 @@
     "############################",
   ];
 
-  // (4) 每次重開：做「部分隨機」迷宮變化（保證可達）
-  const RAND = {
-    maxAcceptedChanges: 22,  // 最多接受多少格變化（太多會變得不像原迷宮）
-    attempts: 260,          // 嘗試次數
-    openProb: 0.62,         // 偏向打開牆（比較不會把人困住）
-    protectRadius: 1,       // 重要點(P/G/o)周圍保護半徑
-  };
-
   // ===== DOM =====
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
@@ -497,6 +530,9 @@
   const lbBody    = document.getElementById("lbBody");
   const lbHint    = document.getElementById("lbHint");
 
+  const countdownEl = document.getElementById("countdown");
+  const cdNumEl = document.getElementById("cdNum");
+
   // ===== Utils =====
   function cssVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
@@ -509,7 +545,7 @@
     return `${yy}-${mm}-${dd}`;
   }
 
-  // ===== Leaderboard (Top6 / 7 days) =====
+  // ===== Leaderboard =====
   const LB_KEY = "aruru_maze_lb_v1";
   const KEEP_MS = 7*24*60*60*1000;
 
@@ -545,15 +581,13 @@
   }
   function updateBest(){
     const lb = loadLB();
-    const best = lb.length ? lb[0].score : 0;
-    uiBest.textContent = best;
+    uiBest.textContent = lb.length ? lb[0].score : 0;
   }
 
-  // ===== Audio (BGM + SFX) =====
+  // ===== Audio =====
   let audioCtx = null;
   let unlocked = false;
 
-  // (1) BGM 改為「輕鬆愉快」：簡易 8-bit 旋律 + 和聲（音量仍保持溫和）
   let bgmOn = true;
   let sfxOn = true;
 
@@ -571,7 +605,7 @@
 
   function setBgmVolume(){
     const v = (Number(bgmVol.value)||0)/100;
-    if (bgmGain) bgmGain.gain.value = v * 0.14; // 依舊溫和，不吵
+    if (bgmGain) bgmGain.gain.value = v * 0.14;
   }
 
   function midiToHz(m){ return 440*Math.pow(2,(m-69)/12); }
@@ -580,7 +614,6 @@
     const o = audioCtx.createOscillator();
     const g = audioCtx.createGain();
     o.type = type;
-
     o.frequency.setValueAtTime(freq, t0);
 
     g.gain.setValueAtTime(0.0001, t0);
@@ -595,37 +628,29 @@
   function scheduleBgm(){
     if (!audioCtx || !bgmGain) return;
 
-    // 快樂感：C 大調 + 俏皮跳音
-    const tempo = 132;                   // BPM
-    const stepDur = 60/tempo/2;          // 8th note
-    const lookAhead = 0.12;              // seconds
+    const tempo = 132;
+    const stepDur = 60/tempo/2;
+    const lookAhead = 0.12;
     const now = audioCtx.currentTime;
 
-    // 旋律 pattern（以 MIDI 表示，0 代表休止）
     const melody = [
       72, 76, 79, 76, 74, 76, 72, 0,
       72, 76, 79, 84, 83, 79, 76, 0
-    ]; // C5 E5 G5...
-
-    // 和聲/貝斯：簡單根音跳動
+    ];
     const bass = [
       48, 0, 48, 0, 50, 0, 50, 0,
       45, 0, 45, 0, 43, 0, 43, 0
-    ]; // C3 / D3 / A2 / G2（偏輕）
+    ];
 
     while (bgmNextTime < now + lookAhead){
       const idx = bgmStep % melody.length;
 
-      // melody
       const m = melody[idx];
       if (m){
         const f = midiToHz(m);
         playTone(f, bgmNextTime, stepDur*0.92, "square", 0.08);
-        // 小和聲（高八度輕輕點）
         playTone(f*2, bgmNextTime, stepDur*0.55, "triangle", 0.03);
       }
-
-      // bass（更小聲、較圓）
       const b = bass[idx];
       if (b){
         playTone(midiToHz(b), bgmNextTime, stepDur*0.95, "sine", 0.05);
@@ -647,8 +672,6 @@
 
     bgmNextTime = audioCtx.currentTime + 0.04;
     bgmStep = 0;
-
-    // 啟動 scheduler
     bgmTimer = setInterval(scheduleBgm, 25);
   }
 
@@ -661,15 +684,13 @@
         bgmGain.gain.setValueAtTime(bgmGain.gain.value, t);
         bgmGain.gain.exponentialRampToValueAtTime(0.0001, t+0.15);
       }catch(e){}
-      // 讓它自然淡出後斷開
       setTimeout(()=>{ try{ bgmGain.disconnect(); }catch(e){} }, 220);
       bgmGain = null;
     }
   }
 
   function sfxBeep(freq=520, dur=0.05, type="sine"){
-    if (!unlocked) return;
-    if (!sfxOn) return;
+    if (!unlocked || !sfxOn) return;
     const v = (Number(sfxVol.value)||0)/100;
     const g0 = 0.03 * v;
 
@@ -691,9 +712,7 @@
     if (bgmOn) startBgm(); else stopBgm();
   });
   chkSfx.addEventListener("change", ()=>{ sfxOn = chkSfx.checked; });
-
   bgmVol.addEventListener("input", ()=>{ setBgmVolume(); });
-  sfxVol.addEventListener("input", ()=>{ /* sfx uses slider each play */ });
 
   // ===== Images preload =====
   const images = {};
@@ -715,23 +734,23 @@
     }
   }
 
-  // ===== Game constants =====
+  // ===== Map state =====
   const TILE = 30;
 
-  let currentMap = BASE_MAP.slice(); // (4) reset 時會變化
+  let currentMap = BASE_MAP.slice();
   let ROWS = currentMap.length;
   let COLS = currentMap[0].length;
 
-  // grid
   const grid = [];
-  const leaves = new Set(); // '.'
-  const powers = new Set(); // 'o'
+  const leaves = new Set();
+  const powers = new Set();
   let playerStart = {r:0,c:0};
   let ghostHome = {r:0,c:0};
 
   canvas.width = COLS*TILE;
   canvas.height = ROWS*TILE;
 
+  // ===== Game constants =====
   const SPEED_PLAYER = 5.2;
   const GHOST_MIN_RATIO = 0.75;
   const GHOST_MAX_RATIO = 0.95;
@@ -739,17 +758,255 @@
 
   const POWER_TIME = 7.0;
   const INVINCIBLE_TIME = 3.0;
-
   const WEAK_RATIO = 0.72;
   const RESPAWN_TIME = 1.2;
 
-  // ===== Map helpers =====
+  // ===== (1) 隨機迷宮：盡量不要死路（採「可控打洞」+「死路修補」） =====
+  const RAND = {
+    maxHoleOpens: 28,     // 打開牆（降低死路用）
+    attempts: 380,
+    protectRadius: 1,
+    // 死路修補次數上限（越大越少死路，但越像「開放地圖」）
+    deadendFixPasses: 2
+  };
+
   function k(r,c){ return r+","+c; }
 
-  function isWallRC(r,c, mapArr=currentMap){
-    if (c<0 || c>=COLS) return false; // tunnel
-    if (r<0 || r>=ROWS) return true;
-    return (mapArr[r][c] === "#");
+  function buildProtectedMask(mapArr){
+    const prot = Array.from({length:ROWS}, ()=> Array(COLS).fill(false));
+    const important = [];
+    for (let r=0;r<ROWS;r++){
+      for (let c=0;c<COLS;c++){
+        const ch = mapArr[r][c];
+        if (ch==="P" || ch==="G" || ch==="o"){
+          important.push({r,c});
+        }
+      }
+    }
+    for (const p of important){
+      for (let dr=-RAND.protectRadius; dr<=RAND.protectRadius; dr++){
+        for (let dc=-RAND.protectRadius; dc<=RAND.protectRadius; dc++){
+          const rr=p.r+dr, cc=p.c+dc;
+          if (rr>=0 && rr<ROWS && cc>=0 && cc<COLS) prot[rr][cc]=true;
+        }
+      }
+    }
+    for (let r=0;r<ROWS;r++){ prot[r][0]=true; prot[r][COLS-1]=true; }
+    for (let c=0;c<COLS;c++){ prot[0][c]=true; prot[ROWS-1][c]=true; }
+    return prot;
+  }
+
+  function bfsReachable(mapArr){
+    let sr=0, sc=0;
+    for (let r=0;r<ROWS;r++){
+      for (let c=0;c<COLS;c++){
+        if (mapArr[r][c]==="P"){ sr=r; sc=c; break; }
+      }
+    }
+    const q = [{r:sr,c:sc}];
+    const vis = Array.from({length:ROWS}, ()=> Array(COLS).fill(false));
+    vis[sr][sc]=true;
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    while(q.length){
+      const cur=q.shift();
+      for (const [dr,dc] of dirs){
+        const rr=cur.r+dr;
+        let cc=cur.c+dc;
+        if (cc<0) cc=COLS-1;
+        if (cc>=COLS) cc=0;
+        if (rr<0 || rr>=ROWS) continue;
+        if (vis[rr][cc]) continue;
+        if (mapArr[rr][cc]==="#") continue;
+        vis[rr][cc]=true;
+        q.push({r:rr,c:cc});
+      }
+    }
+    return vis;
+  }
+
+  function isAllImportantReachable(mapArr){
+    const vis = bfsReachable(mapArr);
+    for (let r=0;r<ROWS;r++){
+      for (let c=0;c<COLS;c++){
+        const ch = mapArr[r][c];
+        if ((ch==="G" || ch==="o") && !vis[r][c]) return false;
+      }
+    }
+    let edible=0;
+    for (let r=0;r<ROWS;r++){
+      for (let c=0;c<COLS;c++){
+        const ch = mapArr[r][c];
+        if ((ch==="." || ch==="o") && vis[r][c]) edible++;
+      }
+    }
+    return edible >= 18;
+  }
+
+  function passable(mapArr,r,c){
+    if (r<0 || r>=ROWS) return false;
+    if (c<0 || c>=COLS) return false;
+    return mapArr[r][c] !== "#";
+  }
+
+  function degree4(mapArr,r,c){
+    // tunnel wrap on left/right
+    let deg=0;
+    const up = (r-1>=0) ? passable(mapArr,r-1,c) : false;
+    const down = (r+1<ROWS) ? passable(mapArr,r+1,c) : false;
+    const left = passable(mapArr,r,(c-1+COLS)%COLS);
+    const right= passable(mapArr,r,(c+1)%COLS);
+    if (up) deg++;
+    if (down) deg++;
+    if (left) deg++;
+    if (right) deg++;
+    return deg;
+  }
+
+  function fixDeadEnds(mapArr, prot){
+    // 目標：把「度數=1」的死路，打開相鄰牆一格（形成回路）
+    // 注意：不會做到100%無死路（太容易把迷宮打太開），但會「盡量降低」
+    let changed=0;
+    const candidates=[];
+    for (let r=1;r<ROWS-1;r++){
+      for (let c=0;c<COLS;c++){
+        if (prot[r][c]) continue;
+        const ch = mapArr[r][c];
+        if (ch==="#" ) continue;
+        const deg = degree4(mapArr,r,c);
+        if (deg===1) candidates.push({r,c});
+      }
+    }
+
+    // 隨機打散
+    for (let i=candidates.length-1;i>0;i--){
+      const j = (Math.random()*(i+1))|0;
+      [candidates[i],candidates[j]]=[candidates[j],candidates[i]];
+    }
+
+    const dirs = [
+      {dr:-1,dc:0},{dr:1,dc:0},{dr:0,dc:-1},{dr:0,dc:1}
+    ];
+
+    for (const cell of candidates){
+      const r=cell.r, c=cell.c;
+      if (degree4(mapArr,r,c)!==1) continue;
+
+      // 找一面牆可以打通（優先：打通後會連到「已可走區」）
+      const vis = bfsReachable(mapArr);
+
+      let best=null, bestScore=-1;
+      for (const d of dirs){
+        const rr=r+d.dr;
+        let cc=c+d.dc;
+        if (cc<0) cc=COLS-1;
+        if (cc>=COLS) cc=0;
+        if (rr<=0 || rr>=ROWS-1) continue;
+        if (prot[rr][cc]) continue;
+
+        if (mapArr[rr][cc] !== "#") continue; // 只打牆
+        // 打通後的位置
+        // 分數：若打通會直接接到可達區（vis true）加分
+        let score = 0;
+        // 牆的另一側（再往前一格）如果是可走區，代表有機會形成環
+        const r2=rr+d.dr;
+        let c2=cc+d.dc;
+        if (c2<0) c2=COLS-1;
+        if (c2>=COLS) c2=0;
+        if (r2>0 && r2<ROWS-1 && mapArr[r2][c2] !== "#") score += 2;
+        if (vis[rr][cc]) score += 3; // 本身變成可達（打通當然會）
+        // 避免開太大：若打通會讓度數變成 3/4 太多，少加
+        // （估算：把牆變路後那格的 deg）
+        // 先暫時算：若變成 '.'，它周圍可走格數
+        let estDeg=0;
+        const up = (rr-1>=0) ? (mapArr[rr-1][cc] !== "#") : false;
+        const down = (rr+1<ROWS) ? (mapArr[rr+1][cc] !== "#") : false;
+        const left = (mapArr[rr][(cc-1+COLS)%COLS] !== "#");
+        const right= (mapArr[rr][(cc+1)%COLS] !== "#");
+        if (up) estDeg++;
+        if (down) estDeg++;
+        if (left) estDeg++;
+        if (right) estDeg++;
+        score += (estDeg<=2)?1:0;
+
+        if (score>bestScore){ bestScore=score; best={rr,cc}; }
+      }
+
+      if (!best) continue;
+
+      // 先試打通，檢查可達性仍成立
+      const row = mapArr[best.rr];
+      const testRow = row.slice(0,best.cc) + "." + row.slice(best.cc+1);
+      const testMap = mapArr.slice();
+      testMap[best.rr] = testRow;
+
+      if (!isAllImportantReachable(testMap)) continue;
+
+      mapArr = testMap;
+      changed++;
+    }
+    return {mapArr, changed};
+  }
+
+  function randomizeMap(){
+    // 以 BASE_MAP 為基底：只「打開」部分牆，並做死路修補
+    let mapArr = BASE_MAP.slice();
+    ROWS = mapArr.length;
+    COLS = mapArr[0].length;
+
+    const prot = buildProtectedMask(mapArr);
+
+    // 候選牆：內部牆
+    const walls=[];
+    for (let r=1;r<ROWS-1;r++){
+      for (let c=1;c<COLS-1;c++){
+        if (prot[r][c]) continue;
+        if (mapArr[r][c]==="#") walls.push({r,c});
+      }
+    }
+
+    // 隨機打散
+    for (let i=walls.length-1;i>0;i--){
+      const j = (Math.random()*(i+1))|0;
+      [walls[i],walls[j]]=[walls[j],walls[i]];
+    }
+
+    let opened=0;
+    for (let i=0;i<RAND.attempts && opened<RAND.maxHoleOpens && i<walls.length;i++){
+      const w=walls[i];
+      const r=w.r, c=w.c;
+
+      // 只打開那些「打開後不會變成太直通」：簡單限制（周圍至少有2面牆）
+      let neighWall=0;
+      const up = (mapArr[r-1][c]==="#");
+      const down=(mapArr[r+1][c]==="#");
+      const left=(mapArr[r][c-1]==="#");
+      const right=(mapArr[r][c+1]==="#");
+      if (up) neighWall++;
+      if (down) neighWall++;
+      if (left) neighWall++;
+      if (right) neighWall++;
+
+      if (neighWall<2) continue;
+
+      const row = mapArr[r];
+      const testRow = row.slice(0,c) + "." + row.slice(c+1);
+      const testMap = mapArr.slice();
+      testMap[r] = testRow;
+
+      if (!isAllImportantReachable(testMap)) continue;
+
+      mapArr = testMap;
+      opened++;
+    }
+
+    // 死路修補（多輪）
+    for (let p=0;p<RAND.deadendFixPasses;p++){
+      const res = fixDeadEnds(mapArr, prot);
+      mapArr = res.mapArr;
+      if (res.changed===0) break;
+    }
+
+    currentMap = mapArr;
   }
 
   function parseMap(){
@@ -778,153 +1035,9 @@
   }
 
   function isWall(r,c){
-    if (c<0 || c>=COLS) return false; // tunnel
+    if (c<0 || c>=COLS) return false;
     if (r<0 || r>=ROWS) return true;
     return grid[r][c]===1;
-  }
-
-  // ===== (4) Randomize some walls safely =====
-  function buildProtectedMask(mapArr){
-    const prot = Array.from({length:ROWS}, ()=> Array(COLS).fill(false));
-    const important = [];
-    for (let r=0;r<ROWS;r++){
-      for (let c=0;c<COLS;c++){
-        const ch = mapArr[r][c];
-        if (ch==="P" || ch==="G" || ch==="o"){
-          important.push({r,c});
-        }
-      }
-    }
-    for (const p of important){
-      for (let dr=-RAND.protectRadius; dr<=RAND.protectRadius; dr++){
-        for (let dc=-RAND.protectRadius; dc<=RAND.protectRadius; dc++){
-          const rr=p.r+dr, cc=p.c+dc;
-          if (rr>=0 && rr<ROWS && cc>=0 && cc<COLS) prot[rr][cc]=true;
-        }
-      }
-    }
-    // 邊框也保護（避免破壞外框牆感）
-    for (let r=0;r<ROWS;r++){
-      prot[r][0]=true; prot[r][COLS-1]=true;
-    }
-    for (let c=0;c<COLS;c++){
-      prot[0][c]=true; prot[ROWS-1][c]=true;
-    }
-    return prot;
-  }
-
-  function bfsReachable(mapArr){
-    // 找 P
-    let sr=0, sc=0;
-    for (let r=0;r<ROWS;r++){
-      for (let c=0;c<COLS;c++){
-        if (mapArr[r][c]==="P"){ sr=r; sc=c; break; }
-      }
-    }
-    const q = [{r:sr,c:sc}];
-    const vis = Array.from({length:ROWS}, ()=> Array(COLS).fill(false));
-    vis[sr][sc]=true;
-
-    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
-    while(q.length){
-      const cur=q.shift();
-      for (const [dr,dc] of dirs){
-        const rr=cur.r+dr;
-        let cc=cur.c+dc;
-
-        // tunnel wrap
-        if (cc<0) cc=COLS-1;
-        if (cc>=COLS) cc=0;
-
-        if (rr<0 || rr>=ROWS) continue;
-        if (vis[rr][cc]) continue;
-        if (mapArr[rr][cc]==="#") continue;
-        vis[rr][cc]=true;
-        q.push({r:rr,c:cc});
-      }
-    }
-    return vis;
-  }
-
-  function isAllImportantReachable(mapArr){
-    const vis = bfsReachable(mapArr);
-    // 重要點：G、所有 o 都要可達（遊戲核心）
-    for (let r=0;r<ROWS;r++){
-      for (let c=0;c<COLS;c++){
-        const ch = mapArr[r][c];
-        if ((ch==="G" || ch==="o") && !vis[r][c]) return false;
-      }
-    }
-    // 至少要留一些可吃點（避免空圖）
-    let edible=0;
-    for (let r=0;r<ROWS;r++){
-      for (let c=0;c<COLS;c++){
-        const ch = mapArr[r][c];
-        if ((ch==="." || ch==="o") && vis[r][c]) edible++;
-      }
-    }
-    return edible >= 18;
-  }
-
-  function randomizeMap(){
-    // 以 BASE_MAP 為基底，做少量隨機改造
-    let mapArr = BASE_MAP.slice();
-    ROWS = mapArr.length; COLS = mapArr[0].length;
-
-    const prot = buildProtectedMask(mapArr);
-
-    // candidates：內部可動點
-    const candidates = [];
-    for (let r=1;r<ROWS-1;r++){
-      for (let c=1;c<COLS-1;c++){
-        if (prot[r][c]) continue;
-        const ch = mapArr[r][c];
-        // 允許動：# 或 .
-        // 但避免動到能量果/出生點
-        if (ch==="#" || ch===".") candidates.push({r,c});
-      }
-    }
-
-    let accepted = 0;
-
-    for (let i=0;i<RAND.attempts && accepted<RAND.maxAcceptedChanges;i++){
-      const pick = candidates[(Math.random()*candidates.length)|0];
-      const r=pick.r, c=pick.c;
-      const ch = mapArr[r][c];
-
-      // 決定翻轉方向：偏向打開牆
-      const wantOpen = (Math.random() < RAND.openProb);
-
-      // 不動到靠近 P/G/o 的保護區
-      if (prot[r][c]) continue;
-
-      // 嘗試 flip
-      let newCh = ch;
-      if (wantOpen){
-        if (ch==="#") newCh=".";
-        else continue;
-      }else{
-        // 關閉：只能把 '.' 變 '#'
-        // 但避免把太多吃點關掉，所以機率上較少走到這裡
-        if (ch===".") newCh="#";
-        else continue;
-      }
-
-      // 套用到暫存 map
-      const row = mapArr[r];
-      const testRow = row.slice(0,c) + newCh + row.slice(c+1);
-      const testMap = mapArr.slice();
-      testMap[r] = testRow;
-
-      // 可達性檢查
-      if (!isAllImportantReachable(testMap)) continue;
-
-      // 接受
-      mapArr = testMap;
-      accepted++;
-    }
-
-    currentMap = mapArr;
   }
 
   // ===== Entities =====
@@ -960,6 +1073,9 @@
   let powerLeft = 0;
   let invincibleLeft = 0;
 
+  // (3) 倒數期間鎖定更新
+  let inCountdown = false;
+
   const player = {r:0,c:0,dir:DIRS.left,nextDir:DIRS.left};
 
   const ghosts = [
@@ -981,36 +1097,6 @@
     return {r,c};
   }
 
-  function resetGame(){
-    // (4) 每次重開都隨機化部分牆壁排列
-    randomizeMap();
-    parseMap();
-
-    score = 0;
-    lives = 3;
-    powerLeft = 0;
-    invincibleLeft = 0;
-    gameTime = 0;
-
-    player.r=playerStart.r; player.c=playerStart.c;
-    player.dir=DIRS.left; player.nextDir=DIRS.left;
-
-    const home=findOpenNear(ghostHome.r, ghostHome.c);
-    ghosts.forEach((g,i)=>{
-      const p=findOpenNear(home.r, home.c + (i%2===0?-1:1));
-      g.r=p.r; g.c=p.c;
-      g.dir=(i%2===0?DIRS.left:DIRS.right);
-      g.respawn=0;
-      g.patrolIndex=i%patrolCorners.length;
-    });
-
-    running = true;
-    paused = false;
-    lastT = performance.now();
-    syncUI();
-  }
-
-  // ===== UI sync =====
   function syncUI(){
     uiName.textContent = nickName;
     uiScore.textContent = score;
@@ -1024,15 +1110,9 @@
     sfxBeep(520,0.04,"sine");
   });
 
-  // ===== Overlays behavior =====
-  function openHelp(){
-    paused = true;
-    helpOverlay.style.display = "flex";
-  }
-  function closeHelp(){
-    helpOverlay.style.display = "none";
-    paused = false;
-  }
+  // ===== Overlays =====
+  function openHelp(){ paused = true; helpOverlay.style.display = "flex"; }
+  function closeHelp(){ helpOverlay.style.display = "none"; paused = false; }
 
   btnHelp.addEventListener("click", ()=>{
     ensureAudio();
@@ -1049,20 +1129,11 @@
     sfxBeep(620,0.05,"triangle");
     helpOverlay.style.display = "none";
     paused = false;
-    if (!running) {
-      startGameFlow();
-    }
+    if (!running) startGameFlow();
   });
 
-  function openLB(){
-    paused = true;
-    renderLB();
-    lbOverlay.style.display = "flex";
-  }
-  function closeLB(){
-    lbOverlay.style.display = "none";
-    paused = false;
-  }
+  function openLB(){ paused = true; renderLB(); lbOverlay.style.display = "flex"; }
+  function closeLB(){ lbOverlay.style.display = "none"; paused = false; }
   btnLB.addEventListener("click", ()=>{
     ensureAudio();
     sfxBeep(520,0.04,"sine");
@@ -1073,32 +1144,6 @@
     sfxBeep(420,0.03,"sine");
     closeLB();
   });
-
-  // ===== Start button =====
-  function startGameFlow(){
-    ensureAudio();
-    if (bgmOn) startBgm();
-    resetGame();
-    btnStart.textContent = "重新開始";
-  }
-
-  btnStart.addEventListener("click", ()=>{
-    ensureAudio();
-    sfxBeep(660,0.05,"triangle");
-    if (!running){
-      openHelp();
-      return;
-    }
-    resetGame();
-  });
-
-  // ===== Requirement (6): 開局前自動顯示玩法遮罩 =====
-  function showIntro(){
-    running = false;
-    paused = true;
-    helpOverlay.style.display = "flex";
-    btnStart.textContent = "開始";
-  }
 
   // ===== AI helpers =====
   function dist2(a,b){ const dr=a.r-b.r, dc=a.c-b.c; return dr*dr+dc*dc; }
@@ -1135,9 +1180,7 @@
   }
   function getGhostTarget(g){
     const pr=Math.round(player.r), pc=Math.round(player.c);
-
     if (g.base==="chaser") return {r:pr,c:pc};
-
     if (g.base==="ambush"){
       const pd=player.dir;
       let tr=pr+pd.dr*4;
@@ -1147,7 +1190,6 @@
       if (tc>=COLS) tc=0;
       return {r:tr,c:tc};
     }
-
     if (g.base==="patrol"){
       const me={r:Math.round(g.r), c:Math.round(g.c)};
       const pHere={r:pr,c:pc};
@@ -1156,17 +1198,14 @@
       if (dist2(me,corner)<=4) g.patrolIndex=(g.patrolIndex+1)%patrolCorners.length;
       return patrolCorners[g.patrolIndex];
     }
-
     return {r:pr,c:pc};
   }
 
-  // ===== Speed curve (7) =====
   function ghostRatioByTime(){
     const t = clamp(gameTime / GHOST_RAMP_SECS, 0, 1);
     return GHOST_MIN_RATIO + (GHOST_MAX_RATIO - GHOST_MIN_RATIO) * t;
   }
 
-  // ===== Movement step =====
   function stepEntity(ent, dt, speed){
     const move = speed * dt;
 
@@ -1212,11 +1251,9 @@
     }
   }
 
-  // ===== Eating / collisions =====
   function tryEat(){
     const r=Math.round(player.r), c=Math.round(player.c);
     const kk=k(r,c);
-
     if (leaves.has(kk)){
       leaves.delete(kk);
       score += 1;
@@ -1271,12 +1308,11 @@
     openLB();
   }
 
-  // ===== Drawing: map background =====
+  // ===== Drawing =====
   function drawMapBackground(){
     ctx.fillStyle = cssVar("--mapBase");
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    // soil speckles（更泥土、暗淡）
     const spot = cssVar("--mapSpot");
     ctx.globalAlpha = 0.18;
     for (let i=0;i<110;i++){
@@ -1291,7 +1327,6 @@
     ctx.globalAlpha = 1;
   }
 
-  // ===== Drawing: wall (2) 斑紋改更像鹿鹿：採條紋/斑點混合 =====
   function roundRect(x,y,w,h,r){
     const rr=Math.min(r,w/2,h/2);
     ctx.beginPath();
@@ -1303,12 +1338,13 @@
     ctx.closePath();
   }
 
+  // (2) 牆：只保留條紋（移除斑點）
   function drawWallTile(x,y,size,seed){
     const border = cssVar("--wallBorder");
     const base   = cssVar("--wallBase");
-    const spot   = cssVar("--wallSpot");
+    const stripe = cssVar("--wallStripe");
 
-    // shadow to separate from soil
+    // shadow
     ctx.globalAlpha = 0.32;
     ctx.fillStyle = "#000";
     roundRect(x+3, y+4, size-6, size-6, 7);
@@ -1325,15 +1361,15 @@
     roundRect(x+4, y+4, size-8, size-8, 6);
     ctx.fill();
 
-    // pattern clip (inside)
+    // clip for stripes
     ctx.save();
     roundRect(x+4, y+4, size-8, size-8, 6);
     ctx.clip();
 
-    // (2) 條紋：斜向紅棕條，偏「長頸鹿花紋」的節奏感
+    // diagonal stripes only
     const stripeW = 6;
     ctx.globalAlpha = 0.78;
-    ctx.strokeStyle = spot;
+    ctx.strokeStyle = stripe;
     ctx.lineWidth = stripeW;
 
     const offset = (seed % 20) - 10;
@@ -1345,21 +1381,10 @@
       ctx.stroke();
     }
 
-    // 再補少量不規則小斑（讓更像「鹿鹿」）
-    ctx.globalAlpha = 0.82;
-    for (let i=0;i<2;i++){
-      const rr = 4 + ((seed+i*9)%5);
-      const ox = x + 8 + ((seed*17 + i*13) % (size-16));
-      const oy = y + 8 + ((seed*23 + i*19) % (size-16));
-      ctx.fillStyle = spot;
-      ctx.beginPath();
-      ctx.ellipse(ox, oy, rr*1.3, rr*0.75, (seed%10)*0.12, 0, Math.PI*2);
-      ctx.fill();
-    }
     ctx.restore();
     ctx.globalAlpha = 1;
 
-    // inner highlight
+    // highlight
     ctx.globalAlpha = 0.28;
     ctx.strokeStyle = "#fff";
     ctx.lineWidth = 1.2;
@@ -1378,7 +1403,6 @@
     }
   }
 
-  // ===== Drawing: leaf dot (more vivid) =====
   function drawLeaf(x,y){
     const a=cssVar("--leaf1");
     const b=cssVar("--leaf2");
@@ -1420,7 +1444,6 @@
     });
   }
 
-  // ===== Drawing: power fruit =====
   function drawPowerFruit(x,y,t){
     const p1=cssVar("--power1");
     const p2=cssVar("--power2");
@@ -1478,7 +1501,6 @@
     }
   }
 
-  // ===== Visual effects =====
   function drawPlayerAura(x,y,t){
     if (powerLeft>0){
       const pulse=0.5+0.5*Math.sin(t*9);
@@ -1518,7 +1540,6 @@
     ctx.globalAlpha = 1;
   }
 
-  // ===== Main draw =====
   function draw(t){
     drawMapBackground();
     drawWalls();
@@ -1564,10 +1585,105 @@
     }
   }
 
+  // ===== Countdown (3) =====
+  function showCountdown3(){
+    return new Promise((resolve)=>{
+      inCountdown = true;
+      paused = true;
+      countdownEl.style.display = "flex";
+
+      const seq = [3,2,1];
+      let i = 0;
+
+      const tick = ()=>{
+        const n = seq[i];
+        cdNumEl.textContent = String(n);
+        // 小提示音（很輕）
+        sfxBeep(520 + (3-n)*80, 0.04, "triangle");
+
+        i++;
+        if (i >= seq.length){
+          // 結束：0.25s 後開始
+          setTimeout(()=>{
+            countdownEl.style.display = "none";
+            paused = false;
+            inCountdown = false;
+            resolve();
+          }, 220);
+          return;
+        }
+        setTimeout(tick, 800);
+      };
+
+      tick();
+    });
+  }
+
+  // ===== Start / Reset =====
+  async function resetGame(){
+    randomizeMap();
+    parseMap();
+
+    score = 0;
+    lives = 3;
+    powerLeft = 0;
+    invincibleLeft = 0;
+    gameTime = 0;
+
+    player.r=playerStart.r; player.c=playerStart.c;
+    player.dir=DIRS.left; player.nextDir=DIRS.left;
+
+    const home=findOpenNear(ghostHome.r, ghostHome.c);
+    ghosts.forEach((g,i)=>{
+      const p=findOpenNear(home.r, home.c + (i%2===0?-1:1));
+      g.r=p.r; g.c=p.c;
+      g.dir=(i%2===0?DIRS.left:DIRS.right);
+      g.respawn=0;
+      g.patrolIndex=i%patrolCorners.length;
+    });
+
+    running = true;
+    lastT = performance.now();
+    syncUI();
+
+    // (3) 倒數後才開始跑
+    await showCountdown3();
+  }
+
+  async function startGameFlow(){
+    ensureAudio();
+    if (bgmOn) startBgm();
+    btnStart.textContent = "重新開始";
+    await resetGame();
+  }
+
+  btnStart.addEventListener("click", async ()=>{
+    ensureAudio();
+    sfxBeep(660,0.05,"triangle");
+
+    if (!running){
+      openHelp();
+      return;
+    }
+    // 避免重複點造成多個倒數同時跑
+    if (inCountdown) return;
+
+    await resetGame();
+  });
+
+  // ===== Intro =====
+  function showIntro(){
+    running = false;
+    paused = true;
+    helpOverlay.style.display = "flex";
+    btnStart.textContent = "開始";
+  }
+
   // ===== Game loop =====
   function loop(now){
     const t = now/1000;
 
+    // 倒數/暫停：只畫不更新
     if (!running){
       draw(t);
       requestAnimationFrame(loop);
@@ -1584,7 +1700,6 @@
     }
 
     gameTime += dt;
-
     if (powerLeft>0) powerLeft = Math.max(0, powerLeft - dt);
     if (invincibleLeft>0) invincibleLeft = Math.max(0, invincibleLeft - dt);
 
@@ -1593,7 +1708,7 @@
 
     let gRatio = ghostRatioByTime();
     let ghostSpeed = SPEED_PLAYER * gRatio;
-    if (powerLeft>0) ghostSpeed *= WEAK_RATIO;
+    if (powerLeft>0) ghostSpeed *= 0.72;
 
     ghosts.forEach(g=>{
       if (g.respawn>0) g.respawn = Math.max(0, g.respawn - dt);
@@ -1612,7 +1727,17 @@
         g.r=home.r; g.c=home.c;
         g.dir=DIRS.up;
       }else if (g.respawn<=0){
-        onHit();
+        // hit
+        if (invincibleLeft<=0){
+          lives -= 1;
+          sfxBeep(140,0.18,"sawtooth");
+          if (lives<=0){
+            endGame(false);
+            break;
+          }
+          powerLeft = 0;
+          respawnPlayer();
+        }
         break;
       }
     }
@@ -1651,7 +1776,7 @@
 
   // ===== Init =====
   async function init(){
-    // 先做一次隨機化（讓第一次開始就有「不一樣」）
+    // 先初始化一次地圖（非正式開始）
     randomizeMap();
     parseMap();
 
