@@ -18,13 +18,13 @@
       --btn:#111;
       --btnText:#fff;
 
-      /* 地圖底：淺黃＋淺紅棕（斑點） */
-      --mapBase:#FFF2C9;
-      --mapSpot:#E6C2A4;
+      /* (3) 地圖底：暗淡泥土黃色系（含淡斑） */
+      --mapBase:#D8C07A;     /* 泥土黃 */
+      --mapSpot:#B28B5E;     /* 淡紅棕 */
 
-      /* 牆：黃底＋紅棕斑＋黑棕邊框（明顯） */
+      /* 牆：黃底＋紅棕斑/條紋＋黑棕邊框（明顯） */
       --wallBase:#FFD46A;
-      --wallSpot:#B2562E; /* 紅棕 */
+      --wallSpot:#B2562E;   /* 紅棕 */
       --wallBorder:#2B1A12; /* 黑棕邊框 */
 
       /* 嫩葉要更鮮綠 */
@@ -61,7 +61,7 @@
       gap:10px;
     }
 
-    /* ===== Top bar (比照你截圖) ===== */
+    /* ===== Top bar ===== */
     .topbar{
       padding-top: var(--safeT);
       display:flex;
@@ -116,7 +116,7 @@
       border:1px solid #000;
     }
 
-    /* ===== Audio panel (比照你截圖) ===== */
+    /* ===== Audio panel ===== */
     .audioPanel{
       background: var(--panel);
       border:1px solid var(--line);
@@ -153,7 +153,7 @@
       max-width: 46vw;
     }
 
-    /* ===== Name row (比照你截圖) ===== */
+    /* ===== Name row ===== */
     .nameRow{
       display:flex;
       gap:10px;
@@ -313,7 +313,7 @@
     <div class="topbar">
       <div class="brandRow">
         <div>
-          <div class="brand">阿鹿鹿文創-食食鹿(吃鹿粉)</div>
+          <div class="brand">阿鹿鹿文創-鹿鹿迷宮 GO！</div>
           <div class="sub">玩家：<span id="uiName">Guest</span>　|　倍率：x1</div>
         </div>
       </div>
@@ -432,8 +432,9 @@
     angry:  "https://raw.githubusercontent.com/z883662/Aruru/main/lulu5.png",
   };
 
-  // Map: '.'=嫩葉點, 'o'=能量果, 'P'=玩家, 'G'=鬼出生
-  const MAP = [
+  // ===== Base Map (template) =====
+  // '.'=嫩葉點, 'o'=能量果, 'P'=玩家, 'G'=鬼出生
+  const BASE_MAP = [
     "############################",
     "#............##............#",
     "#.####.#####.##.#####.####.#",
@@ -453,6 +454,14 @@
     "#......##....P.....##......#",
     "############################",
   ];
+
+  // (4) 每次重開：做「部分隨機」迷宮變化（保證可達）
+  const RAND = {
+    maxAcceptedChanges: 22,  // 最多接受多少格變化（太多會變得不像原迷宮）
+    attempts: 260,          // 嘗試次數
+    openProb: 0.62,         // 偏向打開牆（比較不會把人困住）
+    protectRadius: 1,       // 重要點(P/G/o)周圍保護半徑
+  };
 
   // ===== DOM =====
   const canvas = document.getElementById("game");
@@ -544,12 +553,14 @@
   let audioCtx = null;
   let unlocked = false;
 
-  // BGM nodes
+  // (1) BGM 改為「輕鬆愉快」：簡易 8-bit 旋律 + 和聲（音量仍保持溫和）
   let bgmOn = true;
   let sfxOn = true;
+
   let bgmGain = null;
-  let bgmOscA = null;
-  let bgmOscB = null;
+  let bgmTimer = null;
+  let bgmNextTime = 0;
+  let bgmStep = 0;
 
   function ensureAudio(){
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -560,55 +571,100 @@
 
   function setBgmVolume(){
     const v = (Number(bgmVol.value)||0)/100;
-    if (bgmGain) bgmGain.gain.value = v*0.18; // very gentle
+    if (bgmGain) bgmGain.gain.value = v * 0.14; // 依舊溫和，不吵
   }
-  function setSfxVolume(){ /* sfx uses current slider each play */ }
+
+  function midiToHz(m){ return 440*Math.pow(2,(m-69)/12); }
+
+  function playTone(freq, t0, dur, type, gain){
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type;
+
+    o.frequency.setValueAtTime(freq, t0);
+
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, gain), t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+    o.connect(g).connect(bgmGain);
+    o.start(t0);
+    o.stop(t0 + dur + 0.02);
+  }
+
+  function scheduleBgm(){
+    if (!audioCtx || !bgmGain) return;
+
+    // 快樂感：C 大調 + 俏皮跳音
+    const tempo = 132;                   // BPM
+    const stepDur = 60/tempo/2;          // 8th note
+    const lookAhead = 0.12;              // seconds
+    const now = audioCtx.currentTime;
+
+    // 旋律 pattern（以 MIDI 表示，0 代表休止）
+    const melody = [
+      72, 76, 79, 76, 74, 76, 72, 0,
+      72, 76, 79, 84, 83, 79, 76, 0
+    ]; // C5 E5 G5...
+
+    // 和聲/貝斯：簡單根音跳動
+    const bass = [
+      48, 0, 48, 0, 50, 0, 50, 0,
+      45, 0, 45, 0, 43, 0, 43, 0
+    ]; // C3 / D3 / A2 / G2（偏輕）
+
+    while (bgmNextTime < now + lookAhead){
+      const idx = bgmStep % melody.length;
+
+      // melody
+      const m = melody[idx];
+      if (m){
+        const f = midiToHz(m);
+        playTone(f, bgmNextTime, stepDur*0.92, "square", 0.08);
+        // 小和聲（高八度輕輕點）
+        playTone(f*2, bgmNextTime, stepDur*0.55, "triangle", 0.03);
+      }
+
+      // bass（更小聲、較圓）
+      const b = bass[idx];
+      if (b){
+        playTone(midiToHz(b), bgmNextTime, stepDur*0.95, "sine", 0.05);
+      }
+
+      bgmNextTime += stepDur;
+      bgmStep++;
+    }
+  }
 
   function startBgm(){
-    if (!unlocked) return;
-    if (!bgmOn) return;
-    if (bgmOscA) return;
+    if (!unlocked || !bgmOn) return;
+    if (bgmTimer) return;
 
     bgmGain = audioCtx.createGain();
-    bgmGain.gain.value = 0.0;
-
-    // simple cute pad: two sines
-    bgmOscA = audioCtx.createOscillator();
-    bgmOscB = audioCtx.createOscillator();
-    bgmOscA.type = "sine";
-    bgmOscB.type = "triangle";
-
-    // comfy chord-ish
-    bgmOscA.frequency.value = 220;   // A3
-    bgmOscB.frequency.value = 277.18; // C#4
-
-    bgmOscA.connect(bgmGain);
-    bgmOscB.connect(bgmGain);
+    bgmGain.gain.value = 0.0001;
     bgmGain.connect(audioCtx.destination);
-
-    bgmOscA.start();
-    bgmOscB.start();
-
     setBgmVolume();
 
-    // gentle fade-in
-    const t = audioCtx.currentTime;
-    bgmGain.gain.cancelScheduledValues(t);
-    bgmGain.gain.setValueAtTime(0.0001, t);
-    bgmGain.gain.exponentialRampToValueAtTime(Math.max(0.0001, bgmGain.gain.value), t+0.4);
+    bgmNextTime = audioCtx.currentTime + 0.04;
+    bgmStep = 0;
+
+    // 啟動 scheduler
+    bgmTimer = setInterval(scheduleBgm, 25);
   }
+
   function stopBgm(){
-    if (!bgmOscA) return;
-    const t = audioCtx.currentTime;
-    try{
-      bgmGain.gain.cancelScheduledValues(t);
-      bgmGain.gain.setValueAtTime(bgmGain.gain.value, t);
-      bgmGain.gain.exponentialRampToValueAtTime(0.0001, t+0.25);
-      bgmOscA.stop(t+0.26);
-      bgmOscB.stop(t+0.26);
-    }catch(e){}
-    bgmOscA = bgmOscB = null;
-    bgmGain = null;
+    if (bgmTimer){ clearInterval(bgmTimer); bgmTimer = null; }
+    if (bgmGain){
+      const t = audioCtx.currentTime;
+      try{
+        bgmGain.gain.cancelScheduledValues(t);
+        bgmGain.gain.setValueAtTime(bgmGain.gain.value, t);
+        bgmGain.gain.exponentialRampToValueAtTime(0.0001, t+0.15);
+      }catch(e){}
+      // 讓它自然淡出後斷開
+      setTimeout(()=>{ try{ bgmGain.disconnect(); }catch(e){} }, 220);
+      bgmGain = null;
+    }
   }
 
   function sfxBeep(freq=520, dur=0.05, type="sine"){
@@ -637,7 +693,7 @@
   chkSfx.addEventListener("change", ()=>{ sfxOn = chkSfx.checked; });
 
   bgmVol.addEventListener("input", ()=>{ setBgmVolume(); });
-  sfxVol.addEventListener("input", ()=>{ setSfxVolume(); });
+  sfxVol.addEventListener("input", ()=>{ /* sfx uses slider each play */ });
 
   // ===== Images preload =====
   const images = {};
@@ -661,41 +717,57 @@
 
   // ===== Game constants =====
   const TILE = 30;
-  const ROWS = MAP.length;
-  const COLS = MAP[0].length;
+
+  let currentMap = BASE_MAP.slice(); // (4) reset 時會變化
+  let ROWS = currentMap.length;
+  let COLS = currentMap[0].length;
+
+  // grid
+  const grid = [];
+  const leaves = new Set(); // '.'
+  const powers = new Set(); // 'o'
+  let playerStart = {r:0,c:0};
+  let ghostHome = {r:0,c:0};
 
   canvas.width = COLS*TILE;
   canvas.height = ROWS*TILE;
 
-  const SPEED_PLAYER = 5.2;               // 玩家固定速度（100%）
-  const GHOST_MIN_RATIO = 0.75;           // (7) 開局怪物 75%
-  const GHOST_MAX_RATIO = 0.95;           // (7) 上限 95%
-  const GHOST_RAMP_SECS = 110;            // 時間越久越快（到達上限約 110s）
+  const SPEED_PLAYER = 5.2;
+  const GHOST_MIN_RATIO = 0.75;
+  const GHOST_MAX_RATIO = 0.95;
+  const GHOST_RAMP_SECS = 110;
 
-  const POWER_TIME = 7.0;                 // 強化 7 秒
-  const INVINCIBLE_TIME = 3.0;            // (8) 重生無敵 3 秒
+  const POWER_TIME = 7.0;
+  const INVINCIBLE_TIME = 3.0;
 
-  // 強化期間：怪物額外降速（弱化）
-  const WEAK_RATIO = 0.72;                // (11) 弱化時怪物更慢（會在玩法說明提及）
-
+  const WEAK_RATIO = 0.72;
   const RESPAWN_TIME = 1.2;
 
-  // ===== Map parsing =====
-  const grid = [];
-  const leaves = new Set(); // '.' 嫩葉點
-  const powers = new Set(); // 'o' 能量果
-  let playerStart = {r:0,c:0};
-  let ghostHome = {r:0,c:0};
-
+  // ===== Map helpers =====
   function k(r,c){ return r+","+c; }
+
+  function isWallRC(r,c, mapArr=currentMap){
+    if (c<0 || c>=COLS) return false; // tunnel
+    if (r<0 || r>=ROWS) return true;
+    return (mapArr[r][c] === "#");
+  }
+
   function parseMap(){
+    ROWS = currentMap.length;
+    COLS = currentMap[0].length;
+
+    canvas.width = COLS*TILE;
+    canvas.height = ROWS*TILE;
+
     grid.length=0; leaves.clear(); powers.clear();
+
     for (let r=0;r<ROWS;r++){
       const row=[];
       for (let c=0;c<COLS;c++){
-        const ch = MAP[r][c] || "#";
-        const isWall = ch==="#";
-        row.push(isWall?1:0);
+        const ch = currentMap[r][c] || "#";
+        const isW = ch==="#";
+        row.push(isW?1:0);
+
         if (ch===".") leaves.add(k(r,c));
         if (ch==="o") powers.add(k(r,c));
         if (ch==="P") playerStart={r,c};
@@ -704,10 +776,155 @@
       grid.push(row);
     }
   }
+
   function isWall(r,c){
     if (c<0 || c>=COLS) return false; // tunnel
     if (r<0 || r>=ROWS) return true;
     return grid[r][c]===1;
+  }
+
+  // ===== (4) Randomize some walls safely =====
+  function buildProtectedMask(mapArr){
+    const prot = Array.from({length:ROWS}, ()=> Array(COLS).fill(false));
+    const important = [];
+    for (let r=0;r<ROWS;r++){
+      for (let c=0;c<COLS;c++){
+        const ch = mapArr[r][c];
+        if (ch==="P" || ch==="G" || ch==="o"){
+          important.push({r,c});
+        }
+      }
+    }
+    for (const p of important){
+      for (let dr=-RAND.protectRadius; dr<=RAND.protectRadius; dr++){
+        for (let dc=-RAND.protectRadius; dc<=RAND.protectRadius; dc++){
+          const rr=p.r+dr, cc=p.c+dc;
+          if (rr>=0 && rr<ROWS && cc>=0 && cc<COLS) prot[rr][cc]=true;
+        }
+      }
+    }
+    // 邊框也保護（避免破壞外框牆感）
+    for (let r=0;r<ROWS;r++){
+      prot[r][0]=true; prot[r][COLS-1]=true;
+    }
+    for (let c=0;c<COLS;c++){
+      prot[0][c]=true; prot[ROWS-1][c]=true;
+    }
+    return prot;
+  }
+
+  function bfsReachable(mapArr){
+    // 找 P
+    let sr=0, sc=0;
+    for (let r=0;r<ROWS;r++){
+      for (let c=0;c<COLS;c++){
+        if (mapArr[r][c]==="P"){ sr=r; sc=c; break; }
+      }
+    }
+    const q = [{r:sr,c:sc}];
+    const vis = Array.from({length:ROWS}, ()=> Array(COLS).fill(false));
+    vis[sr][sc]=true;
+
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    while(q.length){
+      const cur=q.shift();
+      for (const [dr,dc] of dirs){
+        const rr=cur.r+dr;
+        let cc=cur.c+dc;
+
+        // tunnel wrap
+        if (cc<0) cc=COLS-1;
+        if (cc>=COLS) cc=0;
+
+        if (rr<0 || rr>=ROWS) continue;
+        if (vis[rr][cc]) continue;
+        if (mapArr[rr][cc]==="#") continue;
+        vis[rr][cc]=true;
+        q.push({r:rr,c:cc});
+      }
+    }
+    return vis;
+  }
+
+  function isAllImportantReachable(mapArr){
+    const vis = bfsReachable(mapArr);
+    // 重要點：G、所有 o 都要可達（遊戲核心）
+    for (let r=0;r<ROWS;r++){
+      for (let c=0;c<COLS;c++){
+        const ch = mapArr[r][c];
+        if ((ch==="G" || ch==="o") && !vis[r][c]) return false;
+      }
+    }
+    // 至少要留一些可吃點（避免空圖）
+    let edible=0;
+    for (let r=0;r<ROWS;r++){
+      for (let c=0;c<COLS;c++){
+        const ch = mapArr[r][c];
+        if ((ch==="." || ch==="o") && vis[r][c]) edible++;
+      }
+    }
+    return edible >= 18;
+  }
+
+  function randomizeMap(){
+    // 以 BASE_MAP 為基底，做少量隨機改造
+    let mapArr = BASE_MAP.slice();
+    ROWS = mapArr.length; COLS = mapArr[0].length;
+
+    const prot = buildProtectedMask(mapArr);
+
+    // candidates：內部可動點
+    const candidates = [];
+    for (let r=1;r<ROWS-1;r++){
+      for (let c=1;c<COLS-1;c++){
+        if (prot[r][c]) continue;
+        const ch = mapArr[r][c];
+        // 允許動：# 或 .
+        // 但避免動到能量果/出生點
+        if (ch==="#" || ch===".") candidates.push({r,c});
+      }
+    }
+
+    let accepted = 0;
+
+    for (let i=0;i<RAND.attempts && accepted<RAND.maxAcceptedChanges;i++){
+      const pick = candidates[(Math.random()*candidates.length)|0];
+      const r=pick.r, c=pick.c;
+      const ch = mapArr[r][c];
+
+      // 決定翻轉方向：偏向打開牆
+      const wantOpen = (Math.random() < RAND.openProb);
+
+      // 不動到靠近 P/G/o 的保護區
+      if (prot[r][c]) continue;
+
+      // 嘗試 flip
+      let newCh = ch;
+      if (wantOpen){
+        if (ch==="#") newCh=".";
+        else continue;
+      }else{
+        // 關閉：只能把 '.' 變 '#'
+        // 但避免把太多吃點關掉，所以機率上較少走到這裡
+        if (ch===".") newCh="#";
+        else continue;
+      }
+
+      // 套用到暫存 map
+      const row = mapArr[r];
+      const testRow = row.slice(0,c) + newCh + row.slice(c+1);
+      const testMap = mapArr.slice();
+      testMap[r] = testRow;
+
+      // 可達性檢查
+      if (!isAllImportantReachable(testMap)) continue;
+
+      // 接受
+      mapArr = testMap;
+      accepted++;
+    }
+
+    currentMap = mapArr;
   }
 
   // ===== Entities =====
@@ -736,12 +953,12 @@
   let lives = 3;
 
   let running = false;
-  let paused = false;          // (5) 玩法開啟自動暫停
+  let paused = false;
   let lastT = 0;
-  let gameTime = 0;            // 用於怪物速度 ramp
+  let gameTime = 0;
 
   let powerLeft = 0;
-  let invincibleLeft = 0;      // (8) 重生無敵倒數
+  let invincibleLeft = 0;
 
   const player = {r:0,c:0,dir:DIRS.left,nextDir:DIRS.left};
 
@@ -765,7 +982,10 @@
   }
 
   function resetGame(){
+    // (4) 每次重開都隨機化部分牆壁排列
+    randomizeMap();
     parseMap();
+
     score = 0;
     lives = 3;
     powerLeft = 0;
@@ -794,7 +1014,6 @@
   function syncUI(){
     uiName.textContent = nickName;
     uiScore.textContent = score;
-    // best handled by updateBest()
   }
 
   btnApply.addEventListener("click", ()=>{
@@ -812,7 +1031,6 @@
   }
   function closeHelp(){
     helpOverlay.style.display = "none";
-    // 若遊戲已開始才恢復；還沒開始就保持不跑
     paused = false;
   }
 
@@ -867,12 +1085,10 @@
   btnStart.addEventListener("click", ()=>{
     ensureAudio();
     sfxBeep(660,0.05,"triangle");
-    // 若還沒開始，先顯示玩法（需求 6）
     if (!running){
       openHelp();
       return;
     }
-    // 已開始：重開
     resetGame();
   });
 
@@ -946,7 +1162,6 @@
 
   // ===== Speed curve (7) =====
   function ghostRatioByTime(){
-    // 0s -> 0.75, ramp to 0.95 by ~GHOST_RAMP_SECS
     const t = clamp(gameTime / GHOST_RAMP_SECS, 0, 1);
     return GHOST_MIN_RATIO + (GHOST_MAX_RATIO - GHOST_MIN_RATIO) * t;
   }
@@ -1021,7 +1236,6 @@
   }
 
   function respawnPlayer(){
-    // (8) 重生：3 秒無敵（可目視）
     player.r=playerStart.r;
     player.c=playerStart.c;
     player.dir=DIRS.left;
@@ -1038,7 +1252,7 @@
   }
 
   function onHit(){
-    if (invincibleLeft>0) return; // 無敵期間不扣
+    if (invincibleLeft>0) return;
     lives -= 1;
     sfxBeep(140,0.18,"sawtooth");
     if (lives<=0){
@@ -1052,36 +1266,32 @@
   function endGame(win){
     running=false;
     paused=false;
-    // 存排行榜
     addLB(nickName, score);
     updateBest();
-
-    // 顯示排行榜當結算
     openLB();
   }
 
   // ===== Drawing: map background =====
   function drawMapBackground(){
-    // base
     ctx.fillStyle = cssVar("--mapBase");
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    // spots
+    // soil speckles（更泥土、暗淡）
     const spot = cssVar("--mapSpot");
-    ctx.globalAlpha = 0.22;
-    for (let i=0;i<85;i++){
-      const x = (i*97)%canvas.width;
-      const y = (i*53)%canvas.height;
-      const r = 14 + (i*11)%22;
+    ctx.globalAlpha = 0.18;
+    for (let i=0;i<110;i++){
+      const x = (i*91)%canvas.width;
+      const y = (i*57)%canvas.height;
+      const r = 10 + (i*9)%20;
       ctx.fillStyle = spot;
       ctx.beginPath();
-      ctx.ellipse(x,y,r*1.1,r*0.8,(i%10)*0.18,0,Math.PI*2);
+      ctx.ellipse(x,y,r*1.2,r*0.75,(i%12)*0.16,0,Math.PI*2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
   }
 
-  // ===== Drawing: wall (3) =====
+  // ===== Drawing: wall (2) 斑紋改更像鹿鹿：採條紋/斑點混合 =====
   function roundRect(x,y,w,h,r){
     const rr=Math.min(r,w/2,h/2);
     ctx.beginPath();
@@ -1094,43 +1304,63 @@
   }
 
   function drawWallTile(x,y,size,seed){
-    // 外框：黑棕明顯
     const border = cssVar("--wallBorder");
     const base   = cssVar("--wallBase");
     const spot   = cssVar("--wallSpot");
 
-    // drop shadow（幫牆和地圖底做區分）
-    ctx.globalAlpha = 0.35;
+    // shadow to separate from soil
+    ctx.globalAlpha = 0.32;
     ctx.fillStyle = "#000";
     roundRect(x+3, y+4, size-6, size-6, 7);
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // main border
+    // border
     ctx.fillStyle = border;
     roundRect(x+1.5, y+1.5, size-3, size-3, 7);
     ctx.fill();
 
-    // inner yellow
+    // inner base
     ctx.fillStyle = base;
     roundRect(x+4, y+4, size-8, size-8, 6);
     ctx.fill();
 
-    // spots (紅棕斑)
-    ctx.globalAlpha = 0.85;
+    // pattern clip (inside)
+    ctx.save();
+    roundRect(x+4, y+4, size-8, size-8, 6);
+    ctx.clip();
+
+    // (2) 條紋：斜向紅棕條，偏「長頸鹿花紋」的節奏感
+    const stripeW = 6;
+    ctx.globalAlpha = 0.78;
+    ctx.strokeStyle = spot;
+    ctx.lineWidth = stripeW;
+
+    const offset = (seed % 20) - 10;
+    for (let i=-40;i<40;i++){
+      const x0 = x + i*10 + offset;
+      ctx.beginPath();
+      ctx.moveTo(x0, y-10);
+      ctx.lineTo(x0 + size + 20, y + size + 30);
+      ctx.stroke();
+    }
+
+    // 再補少量不規則小斑（讓更像「鹿鹿」）
+    ctx.globalAlpha = 0.82;
     for (let i=0;i<2;i++){
-      const rr = 4 + ((seed+i*7)%4);
-      const ox = x + 9 + ((seed*13 + i*9) % (size-18));
-      const oy = y + 9 + ((seed*19 + i*11) % (size-18));
+      const rr = 4 + ((seed+i*9)%5);
+      const ox = x + 8 + ((seed*17 + i*13) % (size-16));
+      const oy = y + 8 + ((seed*23 + i*19) % (size-16));
       ctx.fillStyle = spot;
       ctx.beginPath();
-      ctx.ellipse(ox, oy, rr*1.2, rr*0.8, (seed%10)*0.1, 0, Math.PI*2);
+      ctx.ellipse(ox, oy, rr*1.3, rr*0.75, (seed%10)*0.12, 0, Math.PI*2);
       ctx.fill();
     }
+    ctx.restore();
     ctx.globalAlpha = 1;
 
-    // inner highlight for 立體感
-    ctx.globalAlpha = 0.35;
+    // inner highlight
+    ctx.globalAlpha = 0.28;
     ctx.strokeStyle = "#fff";
     ctx.lineWidth = 1.2;
     roundRect(x+6, y+6, size-12, size-12, 5.5);
@@ -1148,12 +1378,11 @@
     }
   }
 
-  // ===== Drawing: leaf dot (4) more vivid =====
+  // ===== Drawing: leaf dot (more vivid) =====
   function drawLeaf(x,y){
     const a=cssVar("--leaf1");
     const b=cssVar("--leaf2");
 
-    // glow
     ctx.globalAlpha = 0.25;
     ctx.fillStyle = a;
     ctx.beginPath();
@@ -1161,7 +1390,6 @@
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // stem
     ctx.strokeStyle = b;
     ctx.lineWidth = 1.4;
     ctx.beginPath();
@@ -1169,7 +1397,6 @@
     ctx.lineTo(x+2,y+7);
     ctx.stroke();
 
-    // leaves
     ctx.fillStyle = a;
     ctx.beginPath();
     ctx.ellipse(x-2,y,4.6,3.0,-0.65,0,Math.PI*2);
@@ -1178,7 +1405,6 @@
     ctx.ellipse(x+2,y+1,4.6,3.0,0.65,0,Math.PI*2);
     ctx.fill();
 
-    // highlight
     ctx.globalAlpha = 0.45;
     ctx.fillStyle = "#fff";
     ctx.beginPath();
@@ -1194,7 +1420,7 @@
     });
   }
 
-  // ===== Drawing: power fruit (clear) =====
+  // ===== Drawing: power fruit =====
   function drawPowerFruit(x,y,t){
     const p1=cssVar("--power1");
     const p2=cssVar("--power2");
@@ -1217,7 +1443,6 @@
     ctx.ellipse(x,y,10,11,0,0,Math.PI*2);
     ctx.fill();
 
-    // star sparkle
     ctx.globalAlpha = 0.65;
     ctx.strokeStyle = "#fff";
     ctx.lineWidth = 1.2;
@@ -1229,7 +1454,6 @@
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    // leaf
     ctx.fillStyle = cssVar("--leaf1");
     ctx.beginPath();
     ctx.ellipse(x+5,y-11,4.2,2.4,-0.5,0,Math.PI*2);
@@ -1254,9 +1478,8 @@
     }
   }
 
-  // ===== Visual effects 강화/弱화/無敵 (9)(8) =====
+  // ===== Visual effects =====
   function drawPlayerAura(x,y,t){
-    // 強化金光
     if (powerLeft>0){
       const pulse=0.5+0.5*Math.sin(t*9);
       ctx.globalAlpha = 0.35 + 0.25*pulse;
@@ -1266,7 +1489,6 @@
       ctx.fill();
       ctx.globalAlpha = 1;
     }
-    // 無敵白金光（更像「特殊光亮」）
     if (invincibleLeft>0){
       const pulse=0.5+0.5*Math.sin(t*12);
       ctx.globalAlpha = 0.25 + 0.35*pulse;
@@ -1280,7 +1502,6 @@
   }
 
   function drawGhostWeakRing(x,y,t){
-    // 弱化藍光更明顯
     const pulse=0.5+0.5*Math.sin(t*8);
     ctx.globalAlpha = 0.22 + 0.20*pulse;
     ctx.fillStyle = cssVar("--blueWeak");
@@ -1304,23 +1525,19 @@
     drawLeaves();
     drawPowers(t);
 
-    // player
     const px = player.c*TILE + TILE/2;
     const py = player.r*TILE + TILE/2;
     drawPlayerAura(px,py,t);
     drawSprite(images.player, px, py, 26, "#333");
 
-    // ghosts
     ghosts.forEach(g=>{
       const gx = g.c*TILE + TILE/2;
       const gy = g.r*TILE + TILE/2;
 
       if (g.respawn>0) ctx.globalAlpha = 0.55;
 
-      // 弱化特效更強（9）
       if (powerLeft>0 && g.respawn<=0){
         drawGhostWeakRing(gx,gy,t+(g.r+g.c)*0.2);
-        // 讓鬼本體略偏藍（更明顯）
         ctx.globalAlpha = 0.85;
         ctx.fillStyle = "rgba(46,168,255,0.20)";
         ctx.beginPath();
@@ -1333,8 +1550,6 @@
       ctx.globalAlpha = 1;
     });
 
-    // HUD hint: 強化狀態顯示（比照你要求的目視強）
-    // 這裡在 canvas 左上角加一個小標（不干擾頂部 UI）
     if (powerLeft>0 || invincibleLeft>0){
       ctx.globalAlpha = 0.75;
       ctx.fillStyle = "rgba(0,0,0,.35)";
@@ -1362,42 +1577,33 @@
     const dt = Math.min(0.04, (now - lastT)/1000);
     lastT = now;
 
-    // 暫停：只畫不更新（5）
     if (paused){
       draw(t);
       requestAnimationFrame(loop);
       return;
     }
 
-    // time
     gameTime += dt;
 
     if (powerLeft>0) powerLeft = Math.max(0, powerLeft - dt);
     if (invincibleLeft>0) invincibleLeft = Math.max(0, invincibleLeft - dt);
 
-    // player move
     stepEntity(player, dt, SPEED_PLAYER);
     tryEat();
 
-    // ghost speed ratio by time, capped
     let gRatio = ghostRatioByTime();
     let ghostSpeed = SPEED_PLAYER * gRatio;
-
-    // weak state: ghosts slower (11)
     if (powerLeft>0) ghostSpeed *= WEAK_RATIO;
 
-    // update ghosts
     ghosts.forEach(g=>{
       if (g.respawn>0) g.respawn = Math.max(0, g.respawn - dt);
       stepEntity(g, dt, ghostSpeed);
     });
 
-    // collisions
     for (const g of ghosts){
       if (!collide(player,g)) continue;
 
       if (powerLeft>0 && g.respawn<=0){
-        // eat ghost
         score += 10;
         uiScore.textContent = score;
         sfxBeep(900,0.06,"triangle");
@@ -1411,7 +1617,6 @@
       }
     }
 
-    // win
     if (leaves.size + powers.size === 0){
       sfxBeep(760,0.10,"sine");
       endGame(true);
@@ -1446,16 +1651,17 @@
 
   // ===== Init =====
   async function init(){
+    // 先做一次隨機化（讓第一次開始就有「不一樣」）
+    randomizeMap();
     parseMap();
+
     renderLB();
     updateBest();
     syncUI();
 
     await preloadImages();
 
-    // 預設：顯示玩法遮罩（6）
     showIntro();
-
     requestAnimationFrame(loop);
   }
   init();
