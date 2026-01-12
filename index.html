@@ -20,8 +20,12 @@
       --giraffe-spot2:#a56a3f;  /* 中棕斑 */
       --giraffe-shadow:#2a160d; /* 更深陰影 */
 
-      --wall-stroke:#6b3d22;    /* 牆外框 */
-      --wall-glow:#f5c17a;      /* 牆內光 */
+      /* 方塊牆（長頸鹿色版） */
+      --wall-border:#6b3d22;    /* 外框深棕 */
+      --wall-fill:#d9a46a;      /* 內填淺棕 */
+      --wall-inset:#f7d7aa;     /* 內嵌亮邊 */
+      --wall-inset2:#b57443;    /* 內嵌暗邊 */
+
       --dot:#fff0db;            /* 點點 */
       --power:#ffd26a;          /* 能量果 */
 
@@ -120,10 +124,14 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      overflow:hidden;
+      /* ✅ 修正：不要 hidden，避免裁切 */
+      overflow:visible;
     }
+
+    /* ✅ 修正：canvas 寬度用 100%（吃容器扣掉 padding 的可用寬度），不會超出被裁 */
     canvas{
-      width:min(96vw, 980px);
+      width: 100%;
+      max-width: 980px;
       height:auto;
       max-height: calc(100vh - (var(--hudH) + var(--barH) + var(--dpadH) + (var(--gap) * 6) + var(--safeT) + var(--safeB)));
       border-radius: var(--radius);
@@ -132,6 +140,7 @@
       box-shadow: 0 18px 60px #00000088;
       image-rendering: pixelated;
       touch-action:none;
+      display:block;
     }
 
     /* 底部工具列 */
@@ -172,7 +181,7 @@
       justify-content:center;
     }
     .dpadWrap{
-      width: min(720px, 96vw);
+      width: min(720px, 100%);
       display:grid;
       grid-template-columns: 1fr 1fr 1fr;
       grid-template-rows: 60px 60px;
@@ -381,7 +390,7 @@
 
 <script>
 (() => {
-  // ✅ 修正：改用 raw.githubusercontent.com 直連（手機最穩）
+  // ✅ 圖檔：raw 直連（手機最穩）
   const IMG = {
     player: "https://raw.githubusercontent.com/z883662/Aruru/main/lulu1.png",
     dad:    "https://raw.githubusercontent.com/z883662/Aruru/main/lulu2.png",
@@ -390,7 +399,8 @@
     angry:  "https://raw.githubusercontent.com/z883662/Aruru/main/lulu5.png",
   };
 
-  // 迷宮藍圖（28x18）
+  // ✅ 修正：鬼屋有出口（不再 ###G### 把鬼封死）
+  // 28x18
   const MAP = [
     "############################",
     "#............##............#",
@@ -404,7 +414,7 @@
     "######.##### ## #####.######",
     "     #.##### ## #####.#     ",
     "######.##          ##.######",
-    "#..........###G###..........#",
+    "#..........#..G..#.........#",
     "#.####.#####.##.#####.####.#",
     "#o..##................##..o#",
     "###.##.##.########.##.##.###",
@@ -412,11 +422,9 @@
     "############################",
   ];
 
-  // Canvas
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
 
-  // UI
   const elNick   = document.getElementById("nick");
   const elScore  = document.getElementById("score");
   const elLives  = document.getElementById("lives");
@@ -439,13 +447,12 @@
   const loadText = document.getElementById("loadText");
   const loadBar  = document.getElementById("loadBar");
 
-  // D-pad
   const padLeft  = document.getElementById("padLeft");
   const padUp    = document.getElementById("padUp");
   const padRight = document.getElementById("padRight");
   const padDown  = document.getElementById("padDown");
 
-  // ====== Audio (iOS/LINE unlock) ======
+  // ===== Audio (iOS/LINE unlock) =====
   let audioEnabled = true;
   let audioCtx = null;
   let audioUnlocked = false;
@@ -471,8 +478,8 @@
   }
   window.addEventListener("pointerdown", ensureAudioUnlocked, {passive:true});
 
-  // ====== Leaderboard (LocalStorage, top6, 7 days) ======
-  const LB_KEY = "lulu_pacman_lb_final";
+  // ===== Leaderboard =====
+  const LB_KEY = "lulu_pacman_lb_final_v3";
   const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
 
   function loadLB(){
@@ -515,16 +522,13 @@
     lbHint.textContent = lb.length ? "（自動清除超過 7 天）" : "（你會是第一名）";
   }
 
-  // ====== Preload images (FIXED for mobile) ======
+  // ===== Preload images (mobile-safe) =====
   const images = {};
-
-  // ✅ 修正：不設定 crossOrigin（避免手機端被判定失敗）
   function loadImageWithTimeout(src, timeoutMs = 15000){
     return new Promise((resolve, reject) => {
-      const im = new Image();
+      const im = new Image(); // ✅ 不設 crossOrigin（手機更穩）
       const timer = setTimeout(() => {
-        cleanup();
-        reject(new Error("timeout"));
+        cleanup(); reject(new Error("timeout"));
       }, timeoutMs);
 
       function cleanup(){
@@ -532,11 +536,9 @@
         im.onload = null;
         im.onerror = null;
       }
-
       im.onload = () => { cleanup(); resolve(im); };
       im.onerror = () => { cleanup(); reject(new Error("error")); };
 
-      // cache-bust（避免某些環境抓到錯誤快取）
       const bust = (src.includes("?") ? "&" : "?") + "v=" + Date.now();
       im.src = src + bust;
     });
@@ -560,27 +562,20 @@
     loadBar.style.width = `0%`;
 
     for (const [k, src] of entries){
-      try{
-        images[k] = await loadImageWithTimeout(src);
-      }catch(e){
-        images[k] = null;
-        failed.push(k);
-        console.warn("Image failed:", k, src, e);
-      }
+      try{ images[k] = await loadImageWithTimeout(src); }
+      catch(e){ images[k] = null; failed.push(k); }
       done++;
       loadText.textContent = `載入圖檔中… ${done} / ${total}`;
       loadBar.style.width = `${Math.round(done/total*100)}%`;
     }
 
-    if (failed.length){
-      loadText.textContent = "⚠️ 圖檔載入失敗：" + failed.join("、") + "（將用備援圖形）";
-    } else {
-      loadText.textContent = "✅ 圖檔載入完成！可以開始了";
-    }
+    loadText.textContent = failed.length
+      ? "⚠️ 圖檔載入失敗：" + failed.join("、") + "（將用備援圖形）"
+      : "✅ 圖檔載入完成！可以開始了";
     btnStart.disabled = false;
   }
 
-  // ====== Game params ======
+  // ===== Game params =====
   const TILE = 30;
   const ROWS = MAP.length;
   const COLS = MAP[0].length;
@@ -591,10 +586,11 @@
   const SPEED_PLAYER = 5.2;
   const SPEED_GHOST  = 4.8;
   const SPEED_FRIGHT = 3.2;
+
   const POWER_TIME = 7.0;
   const RESPAWN_TIME = 1.6;
 
-  // ====== Map data ======
+  // ===== Map data =====
   const grid = [];
   const dots = new Set();
   const powers = new Set();
@@ -606,6 +602,7 @@
   function parseMap(){
     grid.length = 0;
     dots.clear(); powers.clear();
+
     for (let r=0; r<ROWS; r++){
       const row = [];
       const line = MAP[r];
@@ -628,7 +625,7 @@
     return grid[r][c] === 1;
   }
 
-  // ====== Directions ======
+  // ===== Directions =====
   const DIRS = {
     up:    {dr:-1, dc: 0},
     down:  {dr: 1, dc: 0},
@@ -653,7 +650,7 @@
   }
   function atCenter(x){ return Math.abs(x - Math.round(x)) < 0.05; }
 
-  // ====== State ======
+  // ===== State =====
   let nickName = "-";
   let score = 0;
   let lives = 3;
@@ -690,6 +687,18 @@
     }
   }
 
+  // ✅ 更穩：找鬼出生附近可走的格子（避免卡牆）
+  function findOpenNear(r,c){
+    const offsets = [
+      [0,0],[0,-1],[0,1],[-1,0],[1,0],[0,-2],[0,2],[-2,0],[2,0]
+    ];
+    for (const [dr,dc] of offsets){
+      const rr = r+dr, cc = c+dc;
+      if (rr>=0 && rr<ROWS && cc>=0 && cc<COLS && !isWall(rr,cc)) return {r:rr,c:cc};
+    }
+    return {r,c};
+  }
+
   function resetGame(){
     parseMap();
     score = 0;
@@ -701,9 +710,10 @@
     player.dir = DIRS.left;
     player.nextDir = DIRS.left;
 
+    const home = findOpenNear(ghostHome.r, ghostHome.c);
     ghosts.forEach((g,i)=>{
-      g.r = ghostHome.r;
-      g.c = ghostHome.c + (i%2===0 ? -1 : 1);
+      const p = findOpenNear(home.r, home.c + (i%2===0 ? -1 : 1));
+      g.r = p.r; g.c = p.c;
       g.dir = (i%2===0 ? DIRS.left : DIRS.right);
       g.respawn = 0;
       g.patrolIndex = i % patrolCorners.length;
@@ -714,7 +724,7 @@
     syncHUD();
   }
 
-  // ====== AI ======
+  // ===== AI =====
   function dist2(a,b){
     const dr = a.r - b.r, dc = a.c - b.c;
     return dr*dr + dc*dc;
@@ -783,7 +793,7 @@
     return {r: pr, c: pc};
   }
 
-  // ====== Movement ======
+  // ===== Movement =====
   function stepEntity(ent, dt, speed){
     const move = speed * dt;
 
@@ -831,7 +841,7 @@
     }
   }
 
-  // ====== Eat ======
+  // ===== Eat / collide =====
   function tryEat(){
     const r = Math.round(player.r);
     const c = Math.round(player.c);
@@ -845,12 +855,11 @@
     } else if (powers.has(k)){
       powers.delete(k);
       score += 5;
-      powerLeft = POWER_TIME;
+      powerLeft = 7.0;
       beep(220, 0.08, "square", 0.03);
       syncHUD();
     }
   }
-
   function collide(a,b){
     return Math.abs(a.r - b.r) < 0.45 && Math.abs(a.c - b.c) < 0.45;
   }
@@ -865,12 +874,14 @@
     player.dir = DIRS.left;
     player.nextDir = DIRS.left;
 
+    const home = findOpenNear(ghostHome.r, ghostHome.c);
     ghosts.forEach((g,i)=>{
-      g.r = ghostHome.r;
-      g.c = ghostHome.c + (i%2===0 ? -1 : 1);
+      const p = findOpenNear(home.r, home.c + (i%2===0 ? -1 : 1));
+      g.r = p.r; g.c = p.c;
       g.dir = (i%2===0 ? DIRS.left : DIRS.right);
       g.respawn = 0;
     });
+
     powerLeft = 0;
     syncHUD();
   }
@@ -894,23 +905,16 @@
     btnStart.textContent = "再玩一次";
   }
 
-  // ====== Drawing: giraffe theme background & walls ======
-  function drawGiraffeBackground(){
-    // base
-    ctx.fillStyle = getCss("--giraffe-base");
-    ctx.fillRect(0,0,canvas.width,canvas.height);
+  // ===== Drawing =====
+  function css(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 
-    // subtle vignette
-    const v = ctx.createRadialGradient(canvas.width*0.5, canvas.height*0.45, 80, canvas.width*0.5, canvas.height*0.45, canvas.width*0.75);
-    v.addColorStop(0, "rgba(0,0,0,0.0)");
-    v.addColorStop(1, "rgba(0,0,0,0.35)");
-    ctx.fillStyle = v;
+  function drawGiraffeBackground(){
+    ctx.fillStyle = css("--giraffe-base");
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
     // spots
-    const spotA = getCss("--giraffe-spot");
-    const spotB = getCss("--giraffe-spot2");
-    // deterministic-ish scatter
+    const spotA = css("--giraffe-spot");
+    const spotB = css("--giraffe-spot2");
     for (let i=0;i<90;i++){
       const x = (i*97 % canvas.width);
       const y = (i*53 % canvas.height);
@@ -918,65 +922,59 @@
       ctx.fillStyle = (i%3===0) ? spotA : spotB;
       ctx.globalAlpha = 0.18;
       ctx.beginPath();
-      // blob-ish shape
       ctx.ellipse(x, y, r*1.1, r*0.8, (i%10)*0.2, 0, Math.PI*2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
+
+    // vignette
+    const v = ctx.createRadialGradient(canvas.width*0.5, canvas.height*0.45, 80, canvas.width*0.5, canvas.height*0.45, canvas.width*0.75);
+    v.addColorStop(0, "rgba(0,0,0,0.0)");
+    v.addColorStop(1, "rgba(0,0,0,0.35)");
+    ctx.fillStyle = v;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
   }
 
-  function drawWalls(){
-    // giraffe wall: thick brown border + inner glow
-    const stroke = getCss("--wall-stroke");
-    const glow = getCss("--wall-glow");
-    const shadow = getCss("--giraffe-shadow");
+  // ✅ 方塊牆（像藍格牆那種 tile 感，但用長頸鹿色）
+  function drawWallTile(x,y,size){
+    const border = css("--wall-border");
+    const fill   = css("--wall-fill");
+    const inset  = css("--wall-inset");
+    const inset2 = css("--wall-inset2");
 
-    // shadow layer (depth)
-    ctx.lineJoin = "round";
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = shadow;
-    for (let r=0; r<ROWS; r++){
-      for (let c=0; c<COLS; c++){
-        if (isWall(r,c)){
-          const x = c*TILE, y = r*TILE;
-          ctx.strokeRect(x+4, y+6, TILE-8, TILE-10);
-        }
-      }
-    }
+    // outer
+    ctx.fillStyle = border;
+    ctx.fillRect(x+1, y+1, size-2, size-2);
 
-    // main border
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = stroke;
-    for (let r=0; r<ROWS; r++){
-      for (let c=0; c<COLS; c++){
-        if (isWall(r,c)){
-          const x = c*TILE, y = r*TILE;
-          ctx.strokeRect(x+3, y+3, TILE-6, TILE-6);
-        }
-      }
-    }
+    // inner fill
+    ctx.fillStyle = fill;
+    ctx.fillRect(x+4, y+4, size-8, size-8);
 
-    // inner glow highlight
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = glow;
-    ctx.globalAlpha = 0.55;
-    for (let r=0; r<ROWS; r++){
-      for (let c=0; c<COLS; c++){
-        if (isWall(r,c)){
-          const x = c*TILE, y = r*TILE;
-          ctx.strokeRect(x+6, y+6, TILE-12, TILE-12);
-        }
-      }
-    }
+    // inset highlight (top/left)
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = inset;
+    ctx.fillRect(x+4, y+4, size-8, 2);
+    ctx.fillRect(x+4, y+4, 2, size-8);
+
+    // inset shadow (bottom/right)
+    ctx.fillStyle = inset2;
+    ctx.fillRect(x+4, y+size-6, size-8, 2);
+    ctx.fillRect(x+size-6, y+4, 2, size-8);
     ctx.globalAlpha = 1;
   }
 
-  function getCss(name){
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  function drawWalls(){
+    for (let r=0; r<ROWS; r++){
+      for (let c=0; c<COLS; c++){
+        if (isWall(r,c)){
+          drawWallTile(c*TILE, r*TILE, TILE);
+        }
+      }
+    }
   }
 
   function drawDots(){
-    ctx.fillStyle = getCss("--dot") || "#fff0db";
+    ctx.fillStyle = css("--dot");
     dots.forEach(k=>{
       const [r,c] = k.split(",").map(Number);
       const x = c*TILE + TILE/2;
@@ -986,7 +984,7 @@
       ctx.fill();
     });
 
-    ctx.fillStyle = getCss("--power") || "#ffd26a";
+    ctx.fillStyle = css("--power");
     powers.forEach(k=>{
       const [r,c] = k.split(",").map(Number);
       const x = c*TILE + TILE/2;
@@ -1002,7 +1000,6 @@
       ctx.drawImage(img, x - size/2, y - size/2, size, size);
       return;
     }
-    // fallback (still visible)
     ctx.fillStyle = fallbackColor;
     ctx.beginPath();
     ctx.arc(x, y, size/2, 0, Math.PI*2);
@@ -1012,16 +1009,10 @@
   function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    // giraffe background
     drawGiraffeBackground();
-
-    // walls
     drawWalls();
-
-    // dots
     drawDots();
 
-    // sprites
     drawSprite(images.player, player.c*TILE + TILE/2, player.r*TILE + TILE/2, 26, "#ffd26a");
 
     ghosts.forEach(g=>{
@@ -1030,9 +1021,8 @@
       if (g.respawn > 0) ctx.globalAlpha = 0.55;
       drawSprite(images[g.imgKey], g.c*TILE + TILE/2, g.r*TILE + TILE/2, 26, colorMap[g.imgKey] || "#ffffff");
 
-      // frightened overlay
       if (powerLeft > 0 && g.respawn <= 0){
-        ctx.globalAlpha = 0.25;
+        ctx.globalAlpha = 0.22;
         ctx.fillStyle = "#3aa0ff";
         ctx.beginPath();
         ctx.arc(g.c*TILE + TILE/2, g.r*TILE + TILE/2, 14, 0, Math.PI*2);
@@ -1042,10 +1032,10 @@
     });
 
     if (powerLeft > 0){
+      ctx.globalAlpha = 0.72;
       ctx.fillStyle = "#2a160d";
-      ctx.globalAlpha = 0.7;
       ctx.fillRect(6, 8, 150, 22);
-      ctx.globalAlpha = 1.0;
+      ctx.globalAlpha = 1;
       ctx.fillStyle = "#ffd26a";
       ctx.font = "bold 16px system-ui, -apple-system, Segoe UI";
       ctx.textAlign = "left";
@@ -1053,7 +1043,7 @@
     }
   }
 
-  // ====== Main loop ======
+  // ===== Loop =====
   function loop(t){
     if (!running){
       draw();
@@ -1080,8 +1070,8 @@
           score += 10;
           beep(820, 0.06, "triangle", 0.03);
           g.respawn = RESPAWN_TIME;
-          g.r = ghostHome.r;
-          g.c = ghostHome.c;
+          const home = findOpenNear(ghostHome.r, ghostHome.c);
+          g.r = home.r; g.c = home.c;
           g.dir = DIRS.up;
           syncHUD();
         } else if (g.respawn<=0){
@@ -1098,7 +1088,7 @@
     requestAnimationFrame(loop);
   }
 
-  // ====== Inputs ======
+  // ===== Inputs =====
   window.addEventListener("keydown", (e)=>{
     ensureAudioUnlocked();
     const k = e.key.toLowerCase();
@@ -1122,7 +1112,7 @@
   bindPad(padRight, DIRS.right);
   bindPad(padDown, DIRS.down);
 
-  // ====== Buttons ======
+  // ===== Buttons =====
   btnSound.addEventListener("click", ()=>{
     ensureAudioUnlocked();
     audioEnabled = !audioEnabled;
@@ -1155,7 +1145,7 @@
     resetGame();
   });
 
-  // ====== init ======
+  // ===== init =====
   async function init(){
     renderLB();
     parseMap();
@@ -1167,7 +1157,6 @@
     await preloadAllImages();
     requestAnimationFrame(loop);
   }
-
   init();
 })();
 </script>
