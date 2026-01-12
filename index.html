@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>鹿鹿迷宮 GO！</title>
+  <style>
+    :root{
+      --bg:#07070a;
+      --panel:#0f1020cc;
+      --text:#f2f3ff;
+      --muted:#a8abff;
+      --wall:#2f6bff;
+      --dot:#ffd3b6;
+      --power:#ffe066;
+      --danger:#ff5a7a;
+      --ok:#51ffb0;
+      --radius:18px;
+      --safeB: env(safe-area-inset-bottom);
+      --safeT: env(safe-area-inset-top);
+    }
+    html,body{height:100%; margin:0; background:radial-gradient(1200px 700px at 50% 20%, #141533, var(--bg)); color:var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC","PingFang TC","Microsoft JhengHei", Arial, sans-serif;
+      overflow:hidden;
+    }
+    .wrap{
+      height:100%;
+      display:grid;
+      grid-template-rows:auto 1fr auto;
+      gap:10px;
+      padding: 12px 12px calc(12px + var(--safeB));
+      box-sizing:border-box;
+    }
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding-top: var(--safeT);
+    }
+    .card{
+      background:var(--panel);
+      border:1px solid #ffffff22;
+      border-radius: var(--radius);
+      padding:10px 12px;
+      box-shadow: 0 12px 40px #00000055;
+      backdrop-filter: blur(8px);
+    }
+    .hud{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    }
+    .hud .pill{
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid #ffffff22;
+      background:#00000022;
+      font-size:14px;
+    }
+    .hud b{color:#fff}
+    .btns{display:flex; gap:8px; flex-wrap:wrap;}
+    button{
+      border:1px solid #ffffff22;
+      background:#14163a;
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      font-weight:700;
+    }
+    button:hover{filter:brightness(1.08)}
+    button:active{transform:translateY(1px)}
+    .stage{
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:0;
+    }
+    canvas{
+      width:min(94vw, 920px);
+      height:auto;
+      max-height: 70vh;
+      border-radius: var(--radius);
+      border:1px solid #ffffff22;
+      background:#000;
+      box-shadow: 0 18px 60px #00000088;
+      image-rendering: pixelated;
+      touch-action:none;
+    }
+    .bottom{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width: 680px){
+      .grid2{grid-template-columns:1fr}
+    }
+
+    .overlay{
+      position:absolute; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      pointer-events:none;
+    }
+    .modal{
+      pointer-events:auto;
+      width:min(92vw, 520px);
+      border-radius: 22px;
+      border:1px solid #ffffff22;
+      background: linear-gradient(180deg,#171a45,#0b0c18);
+      box-shadow: 0 20px 80px #000000aa;
+      padding:16px;
+    }
+    .modal h2{margin:4px 0 10px; font-size:20px}
+    .modal p{margin:6px 0; color:var(--muted); font-size:14px; line-height:1.5}
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px}
+    input{
+      flex:1;
+      min-width: 160px;
+      border-radius: 14px;
+      border:1px solid #ffffff22;
+      background:#00000033;
+      color:var(--text);
+      padding:12px 12px;
+      font-size:16px;
+      outline:none;
+    }
+    .hint{
+      font-size:12px;
+      color:#cfd1ff;
+      opacity:.9;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:14px;
+      overflow:hidden;
+      border-radius: 14px;
+    }
+    th,td{padding:8px 10px; border-bottom:1px solid #ffffff14}
+    th{color:#dfe0ff; text-align:left; background:#00000022}
+    td{color:#f3f4ff}
+    .tag{
+      display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid #ffffff22; font-size:12px; color:#dfe0ff;
+      background:#00000022;
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="card hud" style="flex:1">
+      <div class="pill">玩家：<b id="nick">-</b></div>
+      <div class="pill">分數：<b id="score">0</b></div>
+      <div class="pill">生命：<b id="lives">3</b></div>
+      <div class="pill">剩餘點點：<b id="remain">0</b></div>
+      <div class="pill">狀態：<b id="state" style="color:var(--ok)">一般</b></div>
+    </div>
+    <div class="card btns">
+      <button id="btnRestart">重新開始</button>
+      <button id="btnSound">🔊 聲音：開</button>
+    </div>
+  </div>
+
+  <div class="stage">
+    <canvas id="game" width="840" height="510"></canvas>
+
+    <div class="overlay" id="overlay">
+      <div class="modal" id="modal">
+        <h2 id="modalTitle">鹿鹿迷宮 GO！</h2>
+        <p id="modalText">開局前先取個暱稱吧～（排行榜保留 7 天，只顯示前 6 名）</p>
+        <div class="row">
+          <input id="nameInput" maxlength="12" placeholder="輸入暱稱（最多12字）" />
+          <button id="btnStart">開始遊戲</button>
+        </div>
+        <p class="hint">操作：鍵盤方向鍵／WASD。手機：在畫面上滑動。<br/>吃小點 +1；吃大點進入強化模式可反吃敵人。</p>
+
+        <div style="margin-top:12px">
+          <div class="row" style="justify-content:space-between; margin:0 0 8px">
+            <span class="tag">🏆 前 6 名（7 天內）</span>
+            <span class="hint" id="lbHint"></span>
+          </div>
+          <table>
+            <thead><tr><th>#</th><th>暱稱</th><th>分數</th><th>日期</th></tr></thead>
+            <tbody id="lbBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div class="card">
+      <div class="grid2">
+        <div>
+          <b>角色</b>
+          <p style="margin:6px 0 0; color:var(--muted); font-size:14px; line-height:1.5">
+            鹿鹿（你）吃掉迷宮裡的嫩葉點點。吃到能量果會進入強化模式，短時間內可以反吃敵人加分。
+          </p>
+        </div>
+        <div>
+          <b>敵人 AI</b>
+          <p style="margin:6px 0 0; color:var(--muted); font-size:14px; line-height:1.5">
+            鹿爸：追擊你；花媽：預判路線；阿水：巡邏/切換追擊；生氣鹿鹿：路口隨機。
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ====== 你提供的圖檔 ======
+  const IMG = {
+    player: "https://github.com/z883662/Aruru/blob/main/lulu1.png?raw=true",
+    dad:    "https://github.com/z883662/Aruru/blob/main/lulu2.png?raw=true",
+    mom:    "https://github.com/z883662/Aruru/blob/main/lulu3.png?raw=true",
+    water:  "https://github.com/z883662/Aruru/blob/main/lulu4.png?raw=true",
+    angry:  "https://github.com/z883662/Aruru/blob/main/lulu5.png?raw=true",
+  };
+
+  // ====== 迷宮藍圖（28x17） ======
+  const MAP = [
+    "############################",
+    "#............##............#",
+    "#.####.#####.##.#####.####.#",
+    "#o####.#####.##.#####.####o#",
+    "#.####.#####.##.#####.####.#",
+    "#..........................#",
+    "#.####.##.########.##.####.#",
+    "#.####.##.########.##.####.#",
+    "#......##....##....##......#",
+    "######.##### ## #####.######",
+    "     #.##### ## #####.#     ",
+    "######.##          ##.######",
+    "#..........###G###..........#",
+    "#.####.#####.##.#####.####.#",
+    "#o..##................##..o#",
+    "###.##.##.########.##.##.###",
+    "#......##....P.....##......#",
+    "############################",
+  ];
+
+  // 地圖解析：牆(#)、小點(.)、大點(o)、空( )、玩家(P)、敵人(G)
+  // 注意：中間兩行有空格，代表左右通道/房間區域
+
+  // ====== Canvas ======
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+  // ====== UI ======
+  const elNick   = document.getElementById("nick");
+  const elScore  = document.getElementById("score");
+  const elLives  = document.getElementById("lives");
+  const elRemain = document.getElementById("remain");
+  const elState  = document.getElementById("state");
+
+  const overlay = document.getElementById("overlay");
+  const modalTitle = document.getElementById("modalTitle");
+  const modalText  = document.getElementById("modalText");
+  const nameInput  = document.getElementById("nameInput");
+  const btnStart   = document.getElementById("btnStart");
+  const btnRestart = document.getElementById("btnRestart");
+  const btnSound   = document.getElementById("btnSound");
+
+  const lbBody = document.getElementById("lbBody");
+  const lbHint = document.getElementById("lbHint");
+
+  // ====== 音效（iOS/LINE：首次互動解鎖） ======
+  let audioEnabled = true;
+  let audioCtx = null;
+  let audioUnlocked = false;
+
+  function ensureAudioUnlocked(){
+    if (!audioEnabled) return;
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    audioUnlocked = true;
+  }
+  function beep(freq=520, dur=0.05, type="sine", gain=0.03){
+    if (!audioEnabled || !audioUnlocked) return;
+    const t0 = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(gain, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t0);
+    o.stop(t0 + dur);
+  }
+
+  // ====== 排行榜（LocalStorage，前6名，保留7天） ======
+  const LB_KEY = "lulu_pacman_lb_v1";
+  const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
+
+  function loadLB(){
+    try{
+      const raw = localStorage.getItem(LB_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return [];
+      const now = Date.now();
+      return arr.filter(x => x && typeof x.score==="number" && typeof x.name==="string" && typeof x.ts==="number" && (now - x.ts) <= KEEP_MS);
+    }catch(e){ return []; }
+  }
+  function saveLB(arr){
+    try{ localStorage.setItem(LB_KEY, JSON.stringify(arr)); }catch(e){}
+  }
+  function updateLB(name, score){
+    const now = Date.now();
+    let lb = loadLB();
+    lb.push({name, score, ts: now});
+    lb.sort((a,b)=> b.score - a.score || b.ts - a.ts);
+    lb = lb.slice(0,6);
+    saveLB(lb);
+    renderLB();
+  }
+  function fmtDate(ts){
+    const d = new Date(ts);
+    const yy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    return `${yy}-${mm}-${dd}`;
+  }
+  function renderLB(){
+    const lb = loadLB();
+    lbBody.innerHTML = lb.map((r,i)=>(
+      `<tr><td>${i+1}</td><td>${escapeHtml(r.name)}</td><td>${r.score}</td><td>${fmtDate(r.ts)}</td></tr>`
+    )).join("") || `<tr><td colspan="4" style="color:#a8abff">目前沒有紀錄</td></tr>`;
+    lbHint.textContent = lb.length ? "（自動清除超過 7 天紀錄）" : "（你會是第一名）";
+  }
+  function escapeHtml(s){
+    return (s+"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  // ====== 遊戲參數 ======
+  const TILE = 30;                     // 30px per tile
+  const ROWS = MAP.length;
+  const COLS = MAP[0].length;          // 28
+
+  // 讓 canvas 內解析度配合 tile
+  canvas.width  = COLS * TILE;
+  canvas.height = ROWS * TILE;
+
+  const SPEED_PLAYER = 5.2;            // tiles per second (converted later)
+  const SPEED_GHOST  = 4.8;
+  const SPEED_FRIGHT = 3.2;
+
+  const POWER_TIME = 7.0;              // seconds
+  const RESPAWN_TIME = 1.6;
+
+  // ====== 地圖資料 ======
+  const grid = [];   // walls
+  const dots = new Set(); // "." positions key "r,c"
+  const powers = new Set(); // "o"
+  let playerStart = {r:0,c:0};
+  let ghostHome = {r:0,c:0};
+
+  function key(r,c){ return r + "," + c; }
+
+  function parseMap(){
+    grid.length = 0;
+    dots.clear(); powers.clear();
+    for (let r=0; r<ROWS; r++){
+      const row = [];
+      const line = MAP[r];
+      for (let c=0; c<COLS; c++){
+        const ch = line[c] || " ";
+        const isWall = (ch === "#");
+        row.push(isWall ? 1 : 0);
+        if (ch === ".") dots.add(key(r,c));
+        if (ch === "o") powers.add(key(r,c));
+        if (ch === "P") playerStart = {r,c};
+        if (ch === "G") ghostHome = {r,c};
+      }
+      grid.push(row);
+    }
+  }
+
+  function isWall(r,c){
+    // 左右傳送：超出視為穿越
+    if (c < 0 || c >= COLS) return false;
+    if (r < 0 || r >= ROWS) return true;
+    return grid[r][c] === 1;
+  }
+
+  function wrapPos(pos){
+    if (pos.c < 0) pos.c = COLS-1;
+    if (pos.c >= COLS) pos.c = 0;
+  }
+
+  // ====== 圖片載入 ======
+  const images = {};
+  function loadImage(src){
+    return new Promise((resolve,reject)=>{
+      const im = new Image();
+      im.crossOrigin = "anonymous";
+      im.onload = ()=>resolve(im);
+      im.onerror = reject;
+      im.src = src;
+    });
+  }
+
+  // ====== 實體 ======
+  const DIRS = {
+    up:    {dr:-1, dc: 0},
+    down:  {dr: 1, dc: 0},
+    left:  {dr: 0, dc:-1},
+    right: {dr: 0, dc: 1},
+    none:  {dr: 0, dc: 0},
+  };
+  function opposite(d){
+    if (d===DIRS.up) return DIRS.down;
+    if (d===DIRS.down) return DIRS.up;
+    if (d===DIRS.left) return DIRS.right;
+    if (d===DIRS.right) return DIRS.left;
+    return DIRS.none;
+  }
+
+  function canMove(r,c,dir){
+    const nr = r + dir.dr;
+    let nc = c + dir.dc;
+    if (nc < 0) nc = COLS-1;
+    if (nc >= COLS) nc = 0;
+    if (nr < 0 || nr >= ROWS) return false;
+    return !isWall(nr,nc);
+  }
+
+  function atCenter(x){ return Math.abs(x - Math.round(x)) < 0.05; }
+
+  // ====== 遊戲狀態 ======
+  let nickName = "-";
+  let score = 0;
+  let lives = 3;
+  let powerLeft = 0;          // seconds
+  let running = false;
+  let lastTime = 0;
+
+  const player = {
+    r:0, c:0, dir:DIRS.left, nextDir:DIRS.left,
+    speed: SPEED_PLAYER,
+    alive:true
+  };
+
+  const ghosts = [
+    { name:"鹿爸",   imgKey:"dad",   r:0, c:0, dir:DIRS.left,  mode:"chase",  base:"chaser",   respawn:0 },
+    { name:"花媽",   imgKey:"mom",   r:0, c:0, dir:DIRS.right, mode:"chase",  base:"ambush",   respawn:0 },
+    { name:"阿水",   imgKey:"water", r:0, c:0, dir:DIRS.up,    mode:"chase",  base:"patrol",   respawn:0 },
+    { name:"生氣鹿鹿", imgKey:"angry", r:0, c:0, dir:DIRS.down, mode:"chase", base:"random",   respawn:0 },
+  ];
+  const patrolCorners = [
+    {r:1, c:1},
+    {r:1, c:COLS-2},
+    {r:ROWS-2, c:1},
+    {r:ROWS-2, c:COLS-2},
+  ];
+
+  function resetGame(){
+    parseMap();
+    score = 0;
+    lives = 3;
+    powerLeft = 0;
+    player.r = playerStart.r;
+    player.c = playerStart.c;
+    player.dir = DIRS.left;
+    player.nextDir = DIRS.left;
+    player.alive = true;
+
+    // ghosts start around home
+    ghosts.forEach((g,i)=>{
+      g.r = ghostHome.r;
+      g.c = ghostHome.c + (i%2===0 ? -1 : 1);
+      g.dir = (i%2===0 ? DIRS.left : DIRS.right);
+      g.mode = "chase";
+      g.respawn = 0;
+      g.patrolIndex = i % patrolCorners.length;
+    });
+
+    running = true;
+    lastTime = performance.now();
+    syncHUD();
+  }
+
+  function syncHUD(){
+    elNick.textContent = nickName;
+    elScore.textContent = score;
+    elLives.textContent = lives;
+    elRemain.textContent = dots.size + powers.size;
+    if (powerLeft > 0){
+      elState.textContent = "強化";
+      elState.style.color = "var(--power)";
+    }else{
+      elState.textContent = "一般";
+      elState.style.color = "var(--ok)";
+    }
+  }
+
+  // ====== 目標選擇（鬼 AI） ======
+  function dist2(a,b){
+    const dr = a.r - b.r, dc = a.c - b.c;
+    return dr*dr + dc*dc;
+  }
+
+  function chooseDirToward(entity, target, avoidOpposite=true){
+    const r = Math.round(entity.r);
+    const c = Math.round(entity.c);
+
+    const options = [DIRS.up, DIRS.left, DIRS.down, DIRS.right].filter(d => canMove(r,c,d));
+    if (!options.length) return entity.dir;
+
+    let best = options[0];
+    let bestScore = Infinity;
+
+    for (const d of options){
+      if (avoidOpposite && d === opposite(entity.dir) && options.length>1) continue;
+      let nr = r + d.dr;
+      let nc = c + d.dc;
+      if (nc < 0) nc = COLS-1;
+      if (nc >= COLS) nc = 0;
+      const s = dist2({r:nr,c:nc}, target);
+      if (s < bestScore){
+        bestScore = s;
+        best = d;
+      }
+    }
+    return best;
+  }
+
+  function chooseDirAway(entity, target){
+    const r = Math.round(entity.r);
+    const c = Math.round(entity.c);
+
+    const options = [DIRS.up, DIRS.left, DIRS.down, DIRS.right].filter(d => canMove(r,c,d));
+    if (!options.length) return entity.dir;
+
+    let best = options[0];
+    let bestScore = -Infinity;
+
+    for (const d of options){
+      if (d === opposite(entity.dir) && options.length>1) continue;
+      let nr = r + d.dr;
+      let nc = c + d.dc;
+      if (nc < 0) nc = COLS-1;
+      if (nc >= COLS) nc = 0;
+      const s = dist2({r:nr,c:nc}, target);
+      if (s > bestScore){
+        bestScore = s;
+        best = d;
+      }
+    }
+    return best;
+  }
+
+  function getGhostTarget(g){
+    const pr = Math.round(player.r);
+    const pc = Math.round(player.c);
+
+    if (g.base === "chaser"){
+      return {r: pr, c: pc};
+    }
+
+    if (g.base === "ambush"){
+      // 目標 = 玩家前方 4 格
+      const pd = player.dir;
+      let tr = pr + pd.dr * 4;
+      let tc = pc + pd.dc * 4;
+      // clamp within map rows, wrap cols
+      tr = Math.max(1, Math.min(ROWS-2, tr));
+      if (tc < 0) tc = COLS-1;
+      if (tc >= COLS) tc = 0;
+      return {r: tr, c: tc};
+    }
+
+    if (g.base === "patrol"){
+      // 平常巡邏角落，接近玩家就追
+      const me = {r: Math.round(g.r), c: Math.round(g.c)};
+      const playerHere = {r: pr, c: pc};
+      if (dist2(me, playerHere) <= 36){ // within ~6 tiles
+        return playerHere;
+      }
+      const corner = patrolCorners[g.patrolIndex];
+      if (dist2(me, corner) <= 4){
+        g.patrolIndex = (g.patrolIndex + 1) % patrolCorners.length;
+      }
+      return patrolCorners[g.patrolIndex];
+    }
+
+    // random
+    return {r: pr, c: pc};
+  }
+
+  // ====== 移動更新 ======
+  function stepEntity(ent, dt, speed){
+    // dt seconds, speed tiles/sec
+    const move = speed * dt;
+
+    // 在格子中心才允許轉向
+    if (atCenter(ent.r) && atCenter(ent.c)){
+      const r = Math.round(ent.r);
+      const c = Math.round(ent.c);
+
+      // 玩家用 nextDir
+      if (ent === player){
+        if (canMove(r,c,ent.nextDir)) ent.dir = ent.nextDir;
+        else if (!canMove(r,c,ent.dir)) ent.dir = DIRS.none;
+      }
+
+      // 走到路口，對鬼做決策
+      if (ent !== player){
+        if (ent.respawn > 0){
+          // respawn：直接往家走
+          ent.dir = chooseDirToward(ent, ghostHome, true);
+        } else if (powerLeft > 0){
+          // frightened：遠離玩家
+          ent.dir = chooseDirAway(ent, {r: Math.round(player.r), c: Math.round(player.c)});
+        } else {
+          if (ent.base === "random"){
+            // 隨機但不立刻回頭
+            const options = [DIRS.up, DIRS.left, DIRS.down, DIRS.right].filter(d => canMove(r,c,d));
+            const filtered = options.filter(d => d !== opposite(ent.dir));
+            const list = (filtered.length ? filtered : options);
+            if (list.length){
+              ent.dir = list[Math.floor(Math.random()*list.length)];
+            }
+          } else {
+            const target = getGhostTarget(ent);
+            ent.dir = chooseDirToward(ent, target, true);
+          }
+        }
+      }
+    }
+
+    // 實際位移
+    let nr = ent.r + ent.dir.dr * move;
+    let nc = ent.c + ent.dir.dc * move;
+
+    // Wrap tunnel
+    if (nc < 0) nc = COLS - 0.01;
+    if (nc >= COLS) nc = 0.01;
+
+    // 碰牆處理：如果下一格是牆，卡回中心
+    if (ent.dir !== DIRS.none){
+      const tr = Math.round(nr);
+      const tc = Math.round(nc);
+      if (tr>=0 && tr<ROWS && !isWall(tr,tc)){
+        ent.r = nr; ent.c = nc;
+      } else {
+        ent.r = Math.round(ent.r);
+        ent.c = Math.round(ent.c);
+      }
+    }
+  }
+
+  // ====== 遊戲邏輯 ======
+  function tryEat(){
+    const r = Math.round(player.r);
+    const c = Math.round(player.c);
+    const k = key(r,c);
+
+    if (dots.has(k)){
+      dots.delete(k);
+      score += 1;
+      beep(620, 0.04, "sine", 0.025);
+      syncHUD();
+    } else if (powers.has(k)){
+      powers.delete(k);
+      score += 5;
+      powerLeft = POWER_TIME;
+      beep(220, 0.08, "square", 0.03);
+      syncHUD();
+    }
+  }
+
+  function collide(a,b){
+    return Math.abs(a.r - b.r) < 0.45 && Math.abs(a.c - b.c) < 0.45;
+  }
+
+  function onPlayerHit(){
+    lives -= 1;
+    beep(140, 0.20, "sawtooth", 0.02);
+    if (lives <= 0){
+      gameOver();
+      return;
+    }
+    // reset positions only
+    player.r = playerStart.r;
+    player.c = playerStart.c;
+    player.dir = DIRS.left;
+    player.nextDir = DIRS.left;
+
+    ghosts.forEach((g,i)=>{
+      g.r = ghostHome.r;
+      g.c = ghostHome.c + (i%2===0 ? -1 : 1);
+      g.dir = (i%2===0 ? DIRS.left : DIRS.right);
+      g.respawn = 0;
+    });
+    powerLeft = 0;
+    syncHUD();
+  }
+
+  function gameOver(){
+    running = false;
+    syncHUD();
+    updateLB(nickName, score);
+
+    modalTitle.textContent = "遊戲結束！";
+    modalText.textContent = `你的分數：${score}。要不要再來一局？`;
+    overlay.style.display = "flex";
+    btnStart.textContent = "再玩一次";
+  }
+
+  function win(){
+    running = false;
+    updateLB(nickName, score);
+    modalTitle.textContent = "通關成功！";
+    modalText.textContent = `你把嫩葉都吃光啦！分數：${score}`;
+    overlay.style.display = "flex";
+    btnStart.textContent = "再玩一次";
+  }
+
+  // ====== 繪圖 ======
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // 背景
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // 牆
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--wall").trim() || "#2f6bff";
+    ctx.lineWidth = 4;
+    ctx.lineJoin = "round";
+    for (let r=0; r<ROWS; r++){
+      for (let c=0; c<COLS; c++){
+        if (isWall(r,c)){
+          const x = c*TILE, y = r*TILE;
+          ctx.strokeRect(x+3, y+3, TILE-6, TILE-6);
+        }
+      }
+    }
+
+    // 點點
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--dot").trim() || "#ffd3b6";
+    dots.forEach(k=>{
+      const [r,c] = k.split(",").map(Number);
+      const x = c*TILE + TILE/2;
+      const y = r*TILE + TILE/2;
+      ctx.beginPath();
+      ctx.arc(x,y,3.2,0,Math.PI*2);
+      ctx.fill();
+    });
+
+    // 能量果
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--power").trim() || "#ffe066";
+    powers.forEach(k=>{
+      const [r,c] = k.split(",").map(Number);
+      const x = c*TILE + TILE/2;
+      const y = r*TILE + TILE/2;
+      ctx.beginPath();
+      ctx.arc(x,y,7.2,0,Math.PI*2);
+      ctx.fill();
+    });
+
+    // 中央屋子提示線（裝飾）
+    const hx = ghostHome.c * TILE;
+    const hy = ghostHome.r * TILE;
+    ctx.strokeStyle = "#ffffff22";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(hx - TILE*2, hy - TILE*1, TILE*5, TILE*3);
+
+    // 角色：用圖片繪制
+    drawSprite(images.player, player.c*TILE + TILE/2, player.r*TILE + TILE/2, 24);
+
+    ghosts.forEach(g=>{
+      if (g.respawn > 0){
+        // 變淡表示回家中
+        ctx.globalAlpha = 0.55;
+      } else if (powerLeft > 0){
+        // frightened：加藍色遮罩
+        ctx.globalAlpha = 1.0;
+      }
+      drawSprite(images[g.imgKey], g.c*TILE + TILE/2, g.r*TILE + TILE/2, 24);
+
+      if (powerLeft > 0 && g.respawn <= 0){
+        // frightened 簡單藍罩
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = "#3aa0ff";
+        ctx.beginPath();
+        ctx.arc(g.c*TILE + TILE/2, g.r*TILE + TILE/2, 14, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1.0;
+    });
+
+    // 狀態文字
+    if (!running){
+      ctx.fillStyle = "#ffffffaa";
+      ctx.font = "bold 22px system-ui, -apple-system, Segoe UI";
+      ctx.textAlign = "center";
+      ctx.fillText("點擊「開始遊戲」", canvas.width/2, canvas.height/2);
+    }
+
+    // 強化倒數
+    if (powerLeft > 0){
+      ctx.fillStyle = "#ffe066";
+      ctx.font = "bold 16px system-ui, -apple-system, Segoe UI";
+      ctx.textAlign = "left";
+      ctx.fillText("強化：" + powerLeft.toFixed(1) + "s", 10, 22);
+    }
+  }
+
+  function drawSprite(img, x, y, size){
+    if (!img) return;
+    ctx.drawImage(img, x - size/2, y - size/2, size, size);
+  }
+
+  // ====== 主迴圈 ======
+  function loop(t){
+    if (!running){
+      draw();
+      requestAnimationFrame(loop);
+      return;
+    }
+    const dt = Math.min(0.04, (t - lastTime) / 1000);
+    lastTime = t;
+
+    // power time
+    if (powerLeft > 0){
+      powerLeft = Math.max(0, powerLeft - dt);
+    }
+
+    // move player
+    stepEntity(player, dt, player.speed);
+
+    // eat
+    tryEat();
+
+    // move ghosts
+    ghosts.forEach(g=>{
+      if (g.respawn > 0){
+        g.respawn = Math.max(0, g.respawn - dt);
+      }
+      const spd = (powerLeft > 0 && g.respawn<=0) ? SPEED_FRIGHT : SPEED_GHOST;
+      stepEntity(g, dt, spd);
+    });
+
+    // collisions
+    for (const g of ghosts){
+      if (collide(player,g)){
+        if (powerLeft > 0 && g.respawn<=0){
+          // eat ghost
+          score += 10;
+          beep(820, 0.06, "triangle", 0.03);
+          g.respawn = RESPAWN_TIME;
+          g.r = ghostHome.r;
+          g.c = ghostHome.c;
+          g.dir = DIRS.up;
+          syncHUD();
+        } else if (g.respawn<=0){
+          onPlayerHit();
+          break;
+        }
+      }
+    }
+
+    // win condition
+    if (dots.size + powers.size === 0){
+      win();
+    }
+
+    syncHUD();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // ====== 輸入：鍵盤 ======
+  window.addEventListener("keydown", (e)=>{
+    ensureAudioUnlocked();
+    const k = e.key.toLowerCase();
+    if (k === "arrowup" || k === "w") player.nextDir = DIRS.up;
+    if (k === "arrowdown" || k === "s") player.nextDir = DIRS.down;
+    if (k === "arrowleft" || k === "a") player.nextDir = DIRS.left;
+    if (k === "arrowright" || k === "d") player.nextDir = DIRS.right;
+  }, {passive:true});
+
+  // ====== 輸入：手機滑動 ======
+  let touchStart = null;
+  canvas.addEventListener("pointerdown", (e)=>{
+    ensureAudioUnlocked();
+    touchStart = {x:e.clientX, y:e.clientY};
+  });
+  canvas.addEventListener("pointerup", (e)=>{
+    if (!touchStart) return;
+    const dx = e.clientX - touchStart.x;
+    const dy = e.clientY - touchStart.y;
+    touchStart = null;
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+
+    if (Math.abs(dx) > Math.abs(dy)){
+      player.nextDir = dx > 0 ? DIRS.right : DIRS.left;
+    } else {
+      player.nextDir = dy > 0 ? DIRS.down : DIRS.up;
+    }
+  });
+
+  // ====== UI actions ======
+  btnSound.addEventListener("click", ()=>{
+    ensureAudioUnlocked();
+    audioEnabled = !audioEnabled;
+    btnSound.textContent = audioEnabled ? "🔊 聲音：開" : "🔇 聲音：關";
+    if (audioEnabled) beep(520, 0.05, "sine", 0.02);
+  });
+
+  btnRestart.addEventListener("click", ()=>{
+    ensureAudioUnlocked();
+    resetGame();
+  });
+
+  btnStart.addEventListener("click", ()=>{
+    ensureAudioUnlocked();
+    let name = (nameInput.value || "").trim();
+    if (!name) name = "鹿粉";
+    nickName = name.slice(0,12);
+    overlay.style.display = "none";
+    btnStart.textContent = "開始遊戲";
+    resetGame();
+  });
+
+  // 首次點擊 anywhere 解鎖聲音（LINE/iOS）
+  window.addEventListener("pointerdown", ensureAudioUnlocked, {once:false, passive:true});
+
+  // ====== init ======
+  async function init(){
+    renderLB();
+    parseMap();
+    syncHUD();
+
+    // load images
+    const entries = [
+      ["player", IMG.player],
+      ["dad",    IMG.dad],
+      ["mom",    IMG.mom],
+      ["water",  IMG.water],
+      ["angry",  IMG.angry],
+    ];
+
+    for (const [k,src] of entries){
+      try{ images[k] = await loadImage(src); }
+      catch(e){ images[k] = null; console.warn("image failed", k, e); }
+    }
+
+    overlay.style.display = "flex";
+    running = false;
+    requestAnimationFrame(loop);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
