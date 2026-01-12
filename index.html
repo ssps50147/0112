@@ -7,16 +7,27 @@
 
   <style>
     :root{
-      --bg:#07070a;
-      --panel:#0f1020cc;
-      --text:#f2f3ff;
-      --muted:#a8abff;
-      --wall:#2f6bff;
-      --dot:#ffd3b6;
-      --power:#ffe066;
-      --ok:#51ffb0;
+      /* giraffe theme */
+      --bg1:#1a1633;
+      --bg2:#0b0b14;
+      --panel:#151634cc;
 
+      --text:#fff7ee;
+      --muted:#e9d7c9;
+
+      --giraffe-base:#f6d8aa;   /* 奶茶底 */
+      --giraffe-spot:#7a4a2a;   /* 深棕斑 */
+      --giraffe-spot2:#a56a3f;  /* 中棕斑 */
+      --giraffe-shadow:#2a160d; /* 更深陰影 */
+
+      --wall-stroke:#6b3d22;    /* 牆外框 */
+      --wall-glow:#f5c17a;      /* 牆內光 */
+      --dot:#fff0db;            /* 點點 */
+      --power:#ffd26a;          /* 能量果 */
+
+      --ok:#7dffbf;
       --radius:18px;
+
       --safeB: env(safe-area-inset-bottom);
       --safeT: env(safe-area-inset-top);
 
@@ -30,7 +41,11 @@
     html,body{
       height:100%;
       margin:0;
-      background:radial-gradient(1200px 700px at 50% 20%, #141533, var(--bg));
+      background:
+        radial-gradient(900px 600px at 50% 15%, rgba(255,212,150,.18), transparent 60%),
+        radial-gradient(700px 500px at 15% 85%, rgba(255,220,170,.10), transparent 55%),
+        radial-gradient(700px 500px at 85% 85%, rgba(255,220,170,.10), transparent 55%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
       color:var(--text);
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC","PingFang TC","Microsoft JhengHei", Arial, sans-serif;
       overflow:hidden;
@@ -54,7 +69,7 @@
       backdrop-filter: blur(8px);
     }
 
-    /* ===== HUD：手機單行 ===== */
+    /* HUD：手機單行 */
     .hud{
       height: calc(var(--hudH) + var(--safeT));
       padding: calc(8px + var(--safeT)) 10px 8px;
@@ -79,6 +94,7 @@
       font-size:12px;
       white-space:nowrap;
       flex:0 0 auto;
+      color: var(--text);
     }
     .hud .pill b{color:#fff}
     .hud .name{
@@ -90,8 +106,14 @@
       display:flex; gap:8px; align-items:center;
       flex:0 0 auto;
     }
+    .tag{
+      display:inline-block; padding:2px 8px; border-radius:999px;
+      border:1px solid #ffffff22; font-size:12px; color:#ffe9cf;
+      background:#00000022;
+      white-space:nowrap;
+    }
 
-    /* ===== 遊戲區 ===== */
+    /* 遊戲區 */
     .stage{
       position:relative;
       min-height:0;
@@ -112,7 +134,7 @@
       touch-action:none;
     }
 
-    /* ===== 底部工具列（重新開始/聲音/玩法） ===== */
+    /* 底部工具列 */
     .bar{
       height: var(--barH);
       padding: 8px 10px;
@@ -129,18 +151,18 @@
     }
     button{
       border:1px solid #ffffff22;
-      background:#14163a;
+      background: linear-gradient(180deg, #2a1c3e, #14163a);
       color:var(--text);
       padding:10px 12px;
       border-radius:14px;
       cursor:pointer;
-      font-weight:800;
+      font-weight:900;
       font-size:13px;
     }
     button:active{transform:translateY(1px)}
     button[disabled]{opacity:.55; cursor:not-allowed}
 
-    /* ===== D-Pad（如你圖） ===== */
+    /* D-Pad */
     .dpad{
       padding: 8px 10px;
       box-sizing:border-box;
@@ -159,7 +181,9 @@
     .padBtn{
       border-radius: 18px;
       border:1px solid #ffffff22;
-      background:#ffffff14;
+      background:
+        radial-gradient(120px 60px at 30% 30%, rgba(255,220,170,.25), transparent 60%),
+        #ffffff14;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -168,14 +192,14 @@
       font-weight:900;
       font-size:18px;
     }
-    .padBtn:active{filter:brightness(1.1); transform:translateY(1px)}
+    .padBtn:active{filter:brightness(1.12); transform:translateY(1px)}
     .padIcon{
       width:26px; height:26px;
       display:flex; align-items:center; justify-content:center;
       border-radius:6px;
-      background:#0b67ff;
+      background: linear-gradient(180deg, #ffcf7a, #b76b34);
       border:2px solid #00000055;
-      color:#fff;
+      color:#2a160d;
       font-size:16px;
       line-height:1;
     }
@@ -184,7 +208,7 @@
     .padRight{ grid-column:3; grid-row:1; }
     .padDown { grid-column:2; grid-row:2; }
 
-    /* ===== Overlay / Modal ===== */
+    /* Overlay / Modal */
     .overlay{
       position:absolute; inset:0;
       display:none;
@@ -196,7 +220,7 @@
       width:min(92vw, 520px);
       border-radius: 22px;
       border:1px solid #ffffff22;
-      background: linear-gradient(180deg,#171a45,#0b0c18);
+      background: linear-gradient(180deg,#1d1b3f,#0b0c18);
       box-shadow: 0 20px 80px #000000aa;
       padding:16px;
       pointer-events:auto;
@@ -215,7 +239,7 @@
       font-size:15px;
       outline:none;
     }
-    .hint{font-size:12px; color:#cfd1ff; opacity:.9}
+    .hint{font-size:12px; color:#d9c6b5; opacity:.95}
     .loadBarOuter{
       height:10px;
       background:#00000033;
@@ -226,10 +250,9 @@
     .loadBarInner{
       height:100%;
       width:0%;
-      background:#51ffb0;
+      background: linear-gradient(90deg, #ffe082, #7dffbf);
     }
 
-    /* 排行榜表格（可捲動） */
     .lbBox{
       margin-top:10px;
       border:1px solid #ffffff14;
@@ -241,15 +264,10 @@
     }
     table{width:100%; border-collapse:collapse; font-size:13px}
     th,td{padding:8px 10px; border-bottom:1px solid #ffffff14}
-    th{color:#dfe0ff; text-align:left; background:#00000022}
-    td{color:#f3f4ff}
-    .tag{
-      display:inline-block; padding:2px 8px; border-radius:999px;
-      border:1px solid #ffffff22; font-size:12px; color:#dfe0ff;
-      background:#00000022;
-    }
+    th{color:#ffe9cf; text-align:left; background:#00000022}
+    td{color:#fff7ee}
 
-    /* ===== 玩法視窗（可隨時開關） ===== */
+    /* 玩法卡 */
     .helpModal{
       position:absolute;
       inset:auto 10px calc(var(--dpadH) + var(--barH) + 30px + var(--safeB)) 10px;
@@ -257,12 +275,15 @@
       margin: 0 auto;
       display:none;
       padding:12px 12px;
+      border:1px solid #ffffff22;
+      background:
+        radial-gradient(240px 160px at 10% 10%, rgba(255,220,170,.22), transparent 60%),
+        linear-gradient(180deg,#1d1b3f,#0b0c18);
     }
     .helpModal h3{margin:0 0 8px; font-size:16px}
     .helpModal .line{margin:6px 0; font-size:13px; color:var(--muted); line-height:1.4}
     .helpModal .line b{color:#fff}
 
-    /* 小螢幕再縮 */
     @media (max-width: 420px){
       :root{ --dpadH: 140px; }
       button{ padding:10px 10px; font-size:12px; }
@@ -284,7 +305,7 @@
         <div class="pill">⚡ <b id="state" style="color:var(--ok)">一般</b></div>
       </div>
       <div class="right">
-        <span class="tag">手機方向鍵操控</span>
+        <span class="tag">長頸鹿花色主題</span>
       </div>
     </div>
 
@@ -292,7 +313,7 @@
     <div class="stage">
       <canvas id="game" width="840" height="510"></canvas>
 
-      <!-- Help floating card -->
+      <!-- Help card -->
       <div class="card helpModal" id="helpCard">
         <h3>玩法</h3>
         <div class="line">🦌 <b>操作：</b>點方向鍵移動</div>
@@ -320,7 +341,7 @@
           </div>
 
           <p class="hint" style="margin-top:10px">
-            📌 提醒：LINE/iOS 需首次點擊後才允許播放聲音（已處理）。<br/>
+            📌 LINE/iOS 需首次點擊後才允許播放聲音（已處理）。<br/>
             操作：手機點方向鍵；桌機可用方向鍵/WASD。
           </p>
 
@@ -360,16 +381,16 @@
 
 <script>
 (() => {
-  // ====== 你提供的圖檔 ======
+  // ✅ 修正：改用 raw.githubusercontent.com 直連（手機最穩）
   const IMG = {
-    player: "https://github.com/z883662/Aruru/blob/main/lulu1.png?raw=true",
-    dad:    "https://github.com/z883662/Aruru/blob/main/lulu2.png?raw=true",
-    mom:    "https://github.com/z883662/Aruru/blob/main/lulu3.png?raw=true",
-    water:  "https://github.com/z883662/Aruru/blob/main/lulu4.png?raw=true",
-    angry:  "https://github.com/z883662/Aruru/blob/main/lulu5.png?raw=true",
+    player: "https://raw.githubusercontent.com/z883662/Aruru/main/lulu1.png",
+    dad:    "https://raw.githubusercontent.com/z883662/Aruru/main/lulu2.png",
+    mom:    "https://raw.githubusercontent.com/z883662/Aruru/main/lulu3.png",
+    water:  "https://raw.githubusercontent.com/z883662/Aruru/main/lulu4.png",
+    angry:  "https://raw.githubusercontent.com/z883662/Aruru/main/lulu5.png",
   };
 
-  // ====== 迷宮藍圖（28x18） ======
+  // 迷宮藍圖（28x18）
   const MAP = [
     "############################",
     "#............##............#",
@@ -391,11 +412,11 @@
     "############################",
   ];
 
-  // ====== Canvas ======
+  // Canvas
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
 
-  // ====== UI ======
+  // UI
   const elNick   = document.getElementById("nick");
   const elScore  = document.getElementById("score");
   const elLives  = document.getElementById("lives");
@@ -410,8 +431,7 @@
   const btnRestart = document.getElementById("btnRestart");
   const btnSound   = document.getElementById("btnSound");
   const btnHelp    = document.getElementById("btnHelp");
-
-  const helpCard = document.getElementById("helpCard");
+  const helpCard   = document.getElementById("helpCard");
 
   const lbBody = document.getElementById("lbBody");
   const lbHint = document.getElementById("lbHint");
@@ -425,7 +445,7 @@
   const padRight = document.getElementById("padRight");
   const padDown  = document.getElementById("padDown");
 
-  // ====== 音效（iOS/LINE：首次互動解鎖） ======
+  // ====== Audio (iOS/LINE unlock) ======
   let audioEnabled = true;
   let audioCtx = null;
   let audioUnlocked = false;
@@ -451,8 +471,8 @@
   }
   window.addEventListener("pointerdown", ensureAudioUnlocked, {passive:true});
 
-  // ====== 排行榜（LocalStorage，前6名，保留7天） ======
-  const LB_KEY = "lulu_pacman_lb_v2";
+  // ====== Leaderboard (LocalStorage, top6, 7 days) ======
+  const LB_KEY = "lulu_pacman_lb_final";
   const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
 
   function loadLB(){
@@ -491,17 +511,17 @@
     const lb = loadLB();
     lbBody.innerHTML = lb.map((r,i)=>(
       `<tr><td>${i+1}</td><td>${escapeHtml(r.name)}</td><td>${r.score}</td><td>${fmtDate(r.ts)}</td></tr>`
-    )).join("") || `<tr><td colspan="4" style="color:#a8abff">目前沒有紀錄</td></tr>`;
+    )).join("") || `<tr><td colspan="4" style="color:#e9d7c9">目前沒有紀錄</td></tr>`;
     lbHint.textContent = lb.length ? "（自動清除超過 7 天）" : "（你會是第一名）";
   }
 
-  // ====== 圖片預載（含進度/失敗備援） ======
+  // ====== Preload images (FIXED for mobile) ======
   const images = {};
-  function loadImageWithTimeout(src, timeoutMs = 12000){
+
+  // ✅ 修正：不設定 crossOrigin（避免手機端被判定失敗）
+  function loadImageWithTimeout(src, timeoutMs = 15000){
     return new Promise((resolve, reject) => {
       const im = new Image();
-      im.crossOrigin = "anonymous";
-
       const timer = setTimeout(() => {
         cleanup();
         reject(new Error("timeout"));
@@ -515,7 +535,10 @@
 
       im.onload = () => { cleanup(); resolve(im); };
       im.onerror = () => { cleanup(); reject(new Error("error")); };
-      im.src = src;
+
+      // cache-bust（避免某些環境抓到錯誤快取）
+      const bust = (src.includes("?") ? "&" : "?") + "v=" + Date.now();
+      im.src = src + bust;
     });
   }
 
@@ -530,16 +553,18 @@
 
     let done = 0;
     const total = entries.length;
+    const failed = [];
 
     btnStart.disabled = true;
-
     loadText.textContent = `載入圖檔中… 0 / ${total}`;
     loadBar.style.width = `0%`;
 
     for (const [k, src] of entries){
-      try{ images[k] = await loadImageWithTimeout(src); }
-      catch(e){
+      try{
+        images[k] = await loadImageWithTimeout(src);
+      }catch(e){
         images[k] = null;
+        failed.push(k);
         console.warn("Image failed:", k, src, e);
       }
       done++;
@@ -547,12 +572,15 @@
       loadBar.style.width = `${Math.round(done/total*100)}%`;
     }
 
-    const okCount = Object.values(images).filter(Boolean).length;
-    loadText.textContent = okCount ? "✅ 圖檔載入完成！可以開始了" : "⚠️ 圖檔載入失敗：將以備援圖形顯示角色（仍可遊玩）";
+    if (failed.length){
+      loadText.textContent = "⚠️ 圖檔載入失敗：" + failed.join("、") + "（將用備援圖形）";
+    } else {
+      loadText.textContent = "✅ 圖檔載入完成！可以開始了";
+    }
     btnStart.disabled = false;
   }
 
-  // ====== 遊戲參數 ======
+  // ====== Game params ======
   const TILE = 30;
   const ROWS = MAP.length;
   const COLS = MAP[0].length;
@@ -563,11 +591,10 @@
   const SPEED_PLAYER = 5.2;
   const SPEED_GHOST  = 4.8;
   const SPEED_FRIGHT = 3.2;
-
   const POWER_TIME = 7.0;
   const RESPAWN_TIME = 1.6;
 
-  // ====== 地圖資料 ======
+  // ====== Map data ======
   const grid = [];
   const dots = new Set();
   const powers = new Set();
@@ -596,12 +623,12 @@
   }
 
   function isWall(r,c){
-    if (c < 0 || c >= COLS) return false; // tunnel
+    if (c < 0 || c >= COLS) return false; // tunnel wrap
     if (r < 0 || r >= ROWS) return true;
     return grid[r][c] === 1;
   }
 
-  // ====== 實體 / 方向 ======
+  // ====== Directions ======
   const DIRS = {
     up:    {dr:-1, dc: 0},
     down:  {dr: 1, dc: 0},
@@ -626,7 +653,7 @@
   }
   function atCenter(x){ return Math.abs(x - Math.round(x)) < 0.05; }
 
-  // ====== 遊戲狀態 ======
+  // ====== State ======
   let nickName = "-";
   let score = 0;
   let lives = 3;
@@ -634,11 +661,7 @@
   let running = false;
   let lastTime = 0;
 
-  const player = {
-    r:0, c:0, dir:DIRS.left, nextDir:DIRS.left,
-    speed: SPEED_PLAYER,
-  };
-
+  const player = { r:0, c:0, dir:DIRS.left, nextDir:DIRS.left };
   const ghosts = [
     { name:"鹿爸",     imgKey:"dad",   r:0, c:0, dir:DIRS.left,  base:"chaser", respawn:0, patrolIndex:0 },
     { name:"花媽",     imgKey:"mom",   r:0, c:0, dir:DIRS.right, base:"ambush", respawn:0, patrolIndex:1 },
@@ -696,16 +719,13 @@
     const dr = a.r - b.r, dc = a.c - b.c;
     return dr*dr + dc*dc;
   }
-
   function chooseDirToward(entity, target, avoidOpposite=true){
     const r = Math.round(entity.r);
     const c = Math.round(entity.c);
     const options = [DIRS.up, DIRS.left, DIRS.down, DIRS.right].filter(d => canMove(r,c,d));
     if (!options.length) return entity.dir;
 
-    let best = options[0];
-    let bestScore = Infinity;
-
+    let best = options[0], bestScore = Infinity;
     for (const d of options){
       if (avoidOpposite && d === opposite(entity.dir) && options.length>1) continue;
       let nr = r + d.dr;
@@ -717,16 +737,13 @@
     }
     return best;
   }
-
   function chooseDirAway(entity, target){
     const r = Math.round(entity.r);
     const c = Math.round(entity.c);
     const options = [DIRS.up, DIRS.left, DIRS.down, DIRS.right].filter(d => canMove(r,c,d));
     if (!options.length) return entity.dir;
 
-    let best = options[0];
-    let bestScore = -Infinity;
-
+    let best = options[0], bestScore = -Infinity;
     for (const d of options){
       if (d === opposite(entity.dir) && options.length>1) continue;
       let nr = r + d.dr;
@@ -738,14 +755,12 @@
     }
     return best;
   }
-
   function getGhostTarget(g){
     const pr = Math.round(player.r);
     const pc = Math.round(player.c);
 
-    if (g.base === "chaser"){
-      return {r: pr, c: pc};
-    }
+    if (g.base === "chaser") return {r: pr, c: pc};
+
     if (g.base === "ambush"){
       const pd = player.dir;
       let tr = pr + pd.dr * 4;
@@ -755,18 +770,20 @@
       if (tc >= COLS) tc = 0;
       return {r: tr, c: tc};
     }
+
     if (g.base === "patrol"){
       const me = {r: Math.round(g.r), c: Math.round(g.c)};
       const playerHere = {r: pr, c: pc};
-      if (dist2(me, playerHere) <= 36) return playerHere; // 接近就追
+      if (dist2(me, playerHere) <= 36) return playerHere;
       const corner = patrolCorners[g.patrolIndex];
       if (dist2(me, corner) <= 4) g.patrolIndex = (g.patrolIndex + 1) % patrolCorners.length;
       return patrolCorners[g.patrolIndex];
     }
+
     return {r: pr, c: pc};
   }
 
-  // ====== 移動 ======
+  // ====== Movement ======
   function stepEntity(ent, dt, speed){
     const move = speed * dt;
 
@@ -799,7 +816,6 @@
     let nr = ent.r + ent.dir.dr * move;
     let nc = ent.c + ent.dir.dc * move;
 
-    // tunnel wrap
     if (nc < 0) nc = COLS - 0.01;
     if (nc >= COLS) nc = 0.01;
 
@@ -815,7 +831,7 @@
     }
   }
 
-  // ====== 吃點 ======
+  // ====== Eat ======
   function tryEat(){
     const r = Math.round(player.r);
     const c = Math.round(player.c);
@@ -824,7 +840,7 @@
     if (dots.has(k)){
       dots.delete(k);
       score += 1;
-      beep(620, 0.04, "sine", 0.025);
+      beep(620, 0.04, "sine", 0.02);
       syncHUD();
     } else if (powers.has(k)){
       powers.delete(k);
@@ -842,10 +858,8 @@
   function onPlayerHit(){
     lives -= 1;
     beep(140, 0.20, "sawtooth", 0.02);
-    if (lives <= 0){
-      gameOver();
-      return;
-    }
+    if (lives <= 0){ gameOver(); return; }
+
     player.r = playerStart.r;
     player.c = playerStart.c;
     player.dir = DIRS.left;
@@ -865,7 +879,6 @@
     running = false;
     syncHUD();
     updateLB(nickName, score);
-
     modalTitle.textContent = "遊戲結束！";
     modalText.textContent = `你的分數：${score}`;
     overlay.style.display = "flex";
@@ -881,27 +894,59 @@
     btnStart.textContent = "再玩一次";
   }
 
-  // ====== 繪圖 ======
-  function drawSprite(img, x, y, size, fallbackColor="#ffffff"){
-    if (img){
-      ctx.drawImage(img, x - size/2, y - size/2, size, size);
-      return;
-    }
-    ctx.fillStyle = fallbackColor;
-    ctx.beginPath();
-    ctx.arc(x, y, size/2, 0, Math.PI*2);
-    ctx.fill();
-  }
-
-  function draw(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = "#000";
+  // ====== Drawing: giraffe theme background & walls ======
+  function drawGiraffeBackground(){
+    // base
+    ctx.fillStyle = getCss("--giraffe-base");
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    // walls
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--wall").trim() || "#2f6bff";
-    ctx.lineWidth = 4;
+    // subtle vignette
+    const v = ctx.createRadialGradient(canvas.width*0.5, canvas.height*0.45, 80, canvas.width*0.5, canvas.height*0.45, canvas.width*0.75);
+    v.addColorStop(0, "rgba(0,0,0,0.0)");
+    v.addColorStop(1, "rgba(0,0,0,0.35)");
+    ctx.fillStyle = v;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // spots
+    const spotA = getCss("--giraffe-spot");
+    const spotB = getCss("--giraffe-spot2");
+    // deterministic-ish scatter
+    for (let i=0;i<90;i++){
+      const x = (i*97 % canvas.width);
+      const y = (i*53 % canvas.height);
+      const r = 14 + (i*7 % 18);
+      ctx.fillStyle = (i%3===0) ? spotA : spotB;
+      ctx.globalAlpha = 0.18;
+      ctx.beginPath();
+      // blob-ish shape
+      ctx.ellipse(x, y, r*1.1, r*0.8, (i%10)*0.2, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawWalls(){
+    // giraffe wall: thick brown border + inner glow
+    const stroke = getCss("--wall-stroke");
+    const glow = getCss("--wall-glow");
+    const shadow = getCss("--giraffe-shadow");
+
+    // shadow layer (depth)
     ctx.lineJoin = "round";
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = shadow;
+    for (let r=0; r<ROWS; r++){
+      for (let c=0; c<COLS; c++){
+        if (isWall(r,c)){
+          const x = c*TILE, y = r*TILE;
+          ctx.strokeRect(x+4, y+6, TILE-8, TILE-10);
+        }
+      }
+    }
+
+    // main border
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = stroke;
     for (let r=0; r<ROWS; r++){
       for (let c=0; c<COLS; c++){
         if (isWall(r,c)){
@@ -911,8 +956,27 @@
       }
     }
 
-    // dots
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--dot").trim() || "#ffd3b6";
+    // inner glow highlight
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = glow;
+    ctx.globalAlpha = 0.55;
+    for (let r=0; r<ROWS; r++){
+      for (let c=0; c<COLS; c++){
+        if (isWall(r,c)){
+          const x = c*TILE, y = r*TILE;
+          ctx.strokeRect(x+6, y+6, TILE-12, TILE-12);
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function getCss(name){
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function drawDots(){
+    ctx.fillStyle = getCss("--dot") || "#fff0db";
     dots.forEach(k=>{
       const [r,c] = k.split(",").map(Number);
       const x = c*TILE + TILE/2;
@@ -922,8 +986,7 @@
       ctx.fill();
     });
 
-    // power
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--power").trim() || "#ffe066";
+    ctx.fillStyle = getCss("--power") || "#ffd26a";
     powers.forEach(k=>{
       const [r,c] = k.split(",").map(Number);
       const x = c*TILE + TILE/2;
@@ -932,18 +995,44 @@
       ctx.arc(x,y,7.2,0,Math.PI*2);
       ctx.fill();
     });
+  }
+
+  function drawSprite(img, x, y, size, fallbackColor="#ffffff"){
+    if (img){
+      ctx.drawImage(img, x - size/2, y - size/2, size, size);
+      return;
+    }
+    // fallback (still visible)
+    ctx.fillStyle = fallbackColor;
+    ctx.beginPath();
+    ctx.arc(x, y, size/2, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // giraffe background
+    drawGiraffeBackground();
+
+    // walls
+    drawWalls();
+
+    // dots
+    drawDots();
 
     // sprites
-    drawSprite(images.player, player.c*TILE + TILE/2, player.r*TILE + TILE/2, 26, "#ffe066");
+    drawSprite(images.player, player.c*TILE + TILE/2, player.r*TILE + TILE/2, 26, "#ffd26a");
 
     ghosts.forEach(g=>{
-      const colorMap = { dad:"#ff5a7a", mom:"#ff9bd6", water:"#51ffb0", angry:"#ff7f2a" };
+      const colorMap = { dad:"#ff6b6b", mom:"#ff9bd6", water:"#7dffbf", angry:"#ffb36b" };
 
       if (g.respawn > 0) ctx.globalAlpha = 0.55;
       drawSprite(images[g.imgKey], g.c*TILE + TILE/2, g.r*TILE + TILE/2, 26, colorMap[g.imgKey] || "#ffffff");
 
+      // frightened overlay
       if (powerLeft > 0 && g.respawn <= 0){
-        ctx.globalAlpha = 0.35;
+        ctx.globalAlpha = 0.25;
         ctx.fillStyle = "#3aa0ff";
         ctx.beginPath();
         ctx.arc(g.c*TILE + TILE/2, g.r*TILE + TILE/2, 14, 0, Math.PI*2);
@@ -952,16 +1041,19 @@
       ctx.globalAlpha = 1.0;
     });
 
-    // power timer
     if (powerLeft > 0){
-      ctx.fillStyle = "#ffe066";
+      ctx.fillStyle = "#2a160d";
+      ctx.globalAlpha = 0.7;
+      ctx.fillRect(6, 8, 150, 22);
+      ctx.globalAlpha = 1.0;
+      ctx.fillStyle = "#ffd26a";
       ctx.font = "bold 16px system-ui, -apple-system, Segoe UI";
       ctx.textAlign = "left";
-      ctx.fillText("強化：" + powerLeft.toFixed(1) + "s", 10, 22);
+      ctx.fillText("強化：" + powerLeft.toFixed(1) + "s", 10, 25);
     }
   }
 
-  // ====== loop ======
+  // ====== Main loop ======
   function loop(t){
     if (!running){
       draw();
@@ -1006,7 +1098,7 @@
     requestAnimationFrame(loop);
   }
 
-  // ====== 桌機鍵盤（保留） ======
+  // ====== Inputs ======
   window.addEventListener("keydown", (e)=>{
     ensureAudioUnlocked();
     const k = e.key.toLowerCase();
@@ -1016,13 +1108,12 @@
     if (k === "arrowright" || k === "d") player.nextDir = DIRS.right;
   }, {passive:true});
 
-  // ====== 手機方向鍵操控 ======
   function bindPad(el, dir){
     const set = (ev) => {
       ev.preventDefault();
       ensureAudioUnlocked();
       player.nextDir = dir;
-      beep(480, 0.02, "sine", 0.015);
+      beep(480, 0.02, "sine", 0.012);
     };
     el.addEventListener("pointerdown", set, {passive:false});
   }
@@ -1046,11 +1137,9 @@
 
   btnHelp.addEventListener("click", ()=>{
     ensureAudioUnlocked();
-    const showing = (helpCard.style.display === "block");
-    helpCard.style.display = showing ? "none" : "block";
+    helpCard.style.display = (helpCard.style.display === "block") ? "none" : "block";
   });
 
-  // 點背景也可關閉玩法
   helpCard.addEventListener("click", (e)=> e.stopPropagation());
   canvas.addEventListener("pointerdown", ()=>{
     if (helpCard.style.display === "block") helpCard.style.display = "none";
