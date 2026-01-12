@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>鹿鹿迷宮 GO！</title>
+
   <style>
     :root{
       --bg:#07070a;
@@ -13,70 +14,96 @@
       --wall:#2f6bff;
       --dot:#ffd3b6;
       --power:#ffe066;
-      --danger:#ff5a7a;
       --ok:#51ffb0;
+
       --radius:18px;
       --safeB: env(safe-area-inset-bottom);
       --safeT: env(safe-area-inset-top);
+
+      /* 手機 UI 尺寸 */
+      --hudH: 54px;
+      --barH: 54px;
+      --dpadH: 150px;
+      --gap: 10px;
     }
-    html,body{height:100%; margin:0; background:radial-gradient(1200px 700px at 50% 20%, #141533, var(--bg)); color:var(--text);
+
+    html,body{
+      height:100%;
+      margin:0;
+      background:radial-gradient(1200px 700px at 50% 20%, #141533, var(--bg));
+      color:var(--text);
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC","PingFang TC","Microsoft JhengHei", Arial, sans-serif;
       overflow:hidden;
+      -webkit-tap-highlight-color: transparent;
     }
+
     .wrap{
       height:100%;
       display:grid;
-      grid-template-rows:auto 1fr auto;
-      gap:10px;
-      padding: 12px 12px calc(12px + var(--safeB));
+      grid-template-rows: auto 1fr auto auto;
+      gap: var(--gap);
+      padding: 10px 10px calc(10px + var(--safeB));
       box-sizing:border-box;
     }
-    .topbar{
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      padding-top: var(--safeT);
-    }
+
     .card{
       background:var(--panel);
       border:1px solid #ffffff22;
       border-radius: var(--radius);
-      padding:10px 12px;
       box-shadow: 0 12px 40px #00000055;
       backdrop-filter: blur(8px);
     }
+
+    /* ===== HUD：手機單行 ===== */
     .hud{
-      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      height: calc(var(--hudH) + var(--safeT));
+      padding: calc(8px + var(--safeT)) 10px 8px;
+      box-sizing:border-box;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      overflow:hidden;
+    }
+    .hud .left{
+      display:flex; gap:8px; align-items:center;
+      min-width:0;
+      flex:1;
+      overflow:hidden;
     }
     .hud .pill{
-      padding:8px 10px;
-      border-radius:999px;
       border:1px solid #ffffff22;
       background:#00000022;
-      font-size:14px;
+      padding:6px 8px;
+      border-radius:999px;
+      font-size:12px;
+      white-space:nowrap;
+      flex:0 0 auto;
     }
-    .hud b{color:#fff}
-    .btns{display:flex; gap:8px; flex-wrap:wrap;}
-    button{
-      border:1px solid #ffffff22;
-      background:#14163a;
-      color:var(--text);
-      padding:10px 12px;
-      border-radius:14px;
-      cursor:pointer;
-      font-weight:700;
+    .hud .pill b{color:#fff}
+    .hud .name{
+      max-width: 34vw;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
-    button:hover{filter:brightness(1.08)}
-    button:active{transform:translateY(1px)}
+    .hud .right{
+      display:flex; gap:8px; align-items:center;
+      flex:0 0 auto;
+    }
+
+    /* ===== 遊戲區 ===== */
     .stage{
       position:relative;
+      min-height:0;
       display:flex;
       align-items:center;
       justify-content:center;
-      min-height:0;
+      overflow:hidden;
     }
     canvas{
-      width:min(94vw, 920px);
+      width:min(96vw, 980px);
       height:auto;
-      max-height: 70vh;
+      max-height: calc(100vh - (var(--hudH) + var(--barH) + var(--dpadH) + (var(--gap) * 6) + var(--safeT) + var(--safeB)));
       border-radius: var(--radius);
       border:1px solid #ffffff22;
       background:#000;
@@ -84,36 +111,98 @@
       image-rendering: pixelated;
       touch-action:none;
     }
-    .bottom{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:10px;
-    }
-    .grid2{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:10px;
-    }
-    @media (max-width: 680px){
-      .grid2{grid-template-columns:1fr}
-    }
 
+    /* ===== 底部工具列（重新開始/聲音/玩法） ===== */
+    .bar{
+      height: var(--barH);
+      padding: 8px 10px;
+      box-sizing:border-box;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .bar .btns{
+      display:flex; gap:8px; align-items:center;
+      width:100%;
+      justify-content:space-between;
+    }
+    button{
+      border:1px solid #ffffff22;
+      background:#14163a;
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      font-weight:800;
+      font-size:13px;
+    }
+    button:active{transform:translateY(1px)}
+    button[disabled]{opacity:.55; cursor:not-allowed}
+
+    /* ===== D-Pad（如你圖） ===== */
+    .dpad{
+      padding: 8px 10px;
+      box-sizing:border-box;
+      height: var(--dpadH);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .dpadWrap{
+      width: min(720px, 96vw);
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 60px 60px;
+      gap: 12px;
+    }
+    .padBtn{
+      border-radius: 18px;
+      border:1px solid #ffffff22;
+      background:#ffffff14;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      user-select:none;
+      touch-action: manipulation;
+      font-weight:900;
+      font-size:18px;
+    }
+    .padBtn:active{filter:brightness(1.1); transform:translateY(1px)}
+    .padIcon{
+      width:26px; height:26px;
+      display:flex; align-items:center; justify-content:center;
+      border-radius:6px;
+      background:#0b67ff;
+      border:2px solid #00000055;
+      color:#fff;
+      font-size:16px;
+      line-height:1;
+    }
+    .padLeft { grid-column:1; grid-row:1; }
+    .padUp   { grid-column:2; grid-row:1; }
+    .padRight{ grid-column:3; grid-row:1; }
+    .padDown { grid-column:2; grid-row:2; }
+
+    /* ===== Overlay / Modal ===== */
     .overlay{
       position:absolute; inset:0;
-      display:flex; align-items:center; justify-content:center;
-      pointer-events:none;
+      display:none;
+      align-items:center; justify-content:center;
+      background:#00000066;
+      padding:16px;
     }
     .modal{
-      pointer-events:auto;
       width:min(92vw, 520px);
       border-radius: 22px;
       border:1px solid #ffffff22;
       background: linear-gradient(180deg,#171a45,#0b0c18);
       box-shadow: 0 20px 80px #000000aa;
       padding:16px;
+      pointer-events:auto;
     }
-    .modal h2{margin:4px 0 10px; font-size:20px}
-    .modal p{margin:6px 0; color:var(--muted); font-size:14px; line-height:1.5}
+    .modal h2{margin:2px 0 10px; font-size:18px}
+    .modal p{margin:6px 0; color:var(--muted); font-size:13px; line-height:1.45}
     .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px}
     input{
       flex:1;
@@ -123,92 +212,151 @@
       background:#00000033;
       color:var(--text);
       padding:12px 12px;
-      font-size:16px;
+      font-size:15px;
       outline:none;
     }
-    .hint{
-      font-size:12px;
-      color:#cfd1ff;
-      opacity:.9;
-    }
-    table{
-      width:100%;
-      border-collapse:collapse;
-      font-size:14px;
+    .hint{font-size:12px; color:#cfd1ff; opacity:.9}
+    .loadBarOuter{
+      height:10px;
+      background:#00000033;
+      border:1px solid #ffffff22;
+      border-radius:999px;
       overflow:hidden;
-      border-radius: 14px;
     }
+    .loadBarInner{
+      height:100%;
+      width:0%;
+      background:#51ffb0;
+    }
+
+    /* 排行榜表格（可捲動） */
+    .lbBox{
+      margin-top:10px;
+      border:1px solid #ffffff14;
+      border-radius: 14px;
+      overflow:hidden;
+      max-height: 220px;
+      overflow:auto;
+      background:#00000022;
+    }
+    table{width:100%; border-collapse:collapse; font-size:13px}
     th,td{padding:8px 10px; border-bottom:1px solid #ffffff14}
     th{color:#dfe0ff; text-align:left; background:#00000022}
     td{color:#f3f4ff}
     .tag{
-      display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid #ffffff22; font-size:12px; color:#dfe0ff;
+      display:inline-block; padding:2px 8px; border-radius:999px;
+      border:1px solid #ffffff22; font-size:12px; color:#dfe0ff;
       background:#00000022;
+    }
+
+    /* ===== 玩法視窗（可隨時開關） ===== */
+    .helpModal{
+      position:absolute;
+      inset:auto 10px calc(var(--dpadH) + var(--barH) + 30px + var(--safeB)) 10px;
+      max-width: 520px;
+      margin: 0 auto;
+      display:none;
+      padding:12px 12px;
+    }
+    .helpModal h3{margin:0 0 8px; font-size:16px}
+    .helpModal .line{margin:6px 0; font-size:13px; color:var(--muted); line-height:1.4}
+    .helpModal .line b{color:#fff}
+
+    /* 小螢幕再縮 */
+    @media (max-width: 420px){
+      :root{ --dpadH: 140px; }
+      button{ padding:10px 10px; font-size:12px; }
+      .hud .pill{ font-size:11px; padding:6px 7px; }
+      .padBtn{ border-radius:16px; }
     }
   </style>
 </head>
+
 <body>
-<div class="wrap">
-  <div class="topbar">
-    <div class="card hud" style="flex:1">
-      <div class="pill">玩家：<b id="nick">-</b></div>
-      <div class="pill">分數：<b id="score">0</b></div>
-      <div class="pill">生命：<b id="lives">3</b></div>
-      <div class="pill">剩餘點點：<b id="remain">0</b></div>
-      <div class="pill">狀態：<b id="state" style="color:var(--ok)">一般</b></div>
+  <div class="wrap">
+    <!-- HUD -->
+    <div class="card hud">
+      <div class="left">
+        <div class="pill name">🦌 <b id="nick">-</b></div>
+        <div class="pill">⭐ <b id="score">0</b></div>
+        <div class="pill">❤️ <b id="lives">3</b></div>
+        <div class="pill">🍃 <b id="remain">0</b></div>
+        <div class="pill">⚡ <b id="state" style="color:var(--ok)">一般</b></div>
+      </div>
+      <div class="right">
+        <span class="tag">手機方向鍵操控</span>
+      </div>
     </div>
-    <div class="card btns">
-      <button id="btnRestart">重新開始</button>
-      <button id="btnSound">🔊 聲音：開</button>
-    </div>
-  </div>
 
-  <div class="stage">
-    <canvas id="game" width="840" height="510"></canvas>
+    <!-- Game -->
+    <div class="stage">
+      <canvas id="game" width="840" height="510"></canvas>
 
-    <div class="overlay" id="overlay">
-      <div class="modal" id="modal">
-        <h2 id="modalTitle">鹿鹿迷宮 GO！</h2>
-        <p id="modalText">開局前先取個暱稱吧～（排行榜保留 7 天，只顯示前 6 名）</p>
-        <div class="row">
-          <input id="nameInput" maxlength="12" placeholder="輸入暱稱（最多12字）" />
-          <button id="btnStart">開始遊戲</button>
-        </div>
-        <p class="hint">操作：鍵盤方向鍵／WASD。手機：在畫面上滑動。<br/>吃小點 +1；吃大點進入強化模式可反吃敵人。</p>
+      <!-- Help floating card -->
+      <div class="card helpModal" id="helpCard">
+        <h3>玩法</h3>
+        <div class="line">🦌 <b>操作：</b>點方向鍵移動</div>
+        <div class="line">🍃 <b>得分：</b>嫩葉 +1｜能量果 +5</div>
+        <div class="line">⚡ <b>強化：</b>可反吃敵人 +10</div>
+        <div class="line">💥 <b>失敗：</b>碰到敵人 -1 生命</div>
+      </div>
 
-        <div style="margin-top:12px">
-          <div class="row" style="justify-content:space-between; margin:0 0 8px">
+      <!-- Start Modal -->
+      <div class="overlay" id="overlay">
+        <div class="modal" id="modal">
+          <h2 id="modalTitle">鹿鹿迷宮 GO！</h2>
+          <p id="modalText">輸入暱稱後開始（排行榜保留 7 天，只顯示前 6 名）。</p>
+
+          <div class="row">
+            <input id="nameInput" maxlength="12" placeholder="輸入暱稱（最多12字）" />
+            <button id="btnStart">開始遊戲</button>
+          </div>
+
+          <div style="margin-top:10px">
+            <div class="hint" id="loadText">載入圖檔中…</div>
+            <div class="loadBarOuter">
+              <div id="loadBar" class="loadBarInner"></div>
+            </div>
+          </div>
+
+          <p class="hint" style="margin-top:10px">
+            📌 提醒：LINE/iOS 需首次點擊後才允許播放聲音（已處理）。<br/>
+            操作：手機點方向鍵；桌機可用方向鍵/WASD。
+          </p>
+
+          <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center; gap:10px">
             <span class="tag">🏆 前 6 名（7 天內）</span>
             <span class="hint" id="lbHint"></span>
           </div>
-          <table>
-            <thead><tr><th>#</th><th>暱稱</th><th>分數</th><th>日期</th></tr></thead>
-            <tbody id="lbBody"></tbody>
-          </table>
+          <div class="lbBox">
+            <table>
+              <thead><tr><th>#</th><th>暱稱</th><th>分數</th><th>日期</th></tr></thead>
+              <tbody id="lbBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="bottom">
-    <div class="card">
-      <div class="grid2">
-        <div>
-          <b>角色</b>
-          <p style="margin:6px 0 0; color:var(--muted); font-size:14px; line-height:1.5">
-            鹿鹿（你）吃掉迷宮裡的嫩葉點點。吃到能量果會進入強化模式，短時間內可以反吃敵人加分。
-          </p>
-        </div>
-        <div>
-          <b>敵人 AI</b>
-          <p style="margin:6px 0 0; color:var(--muted); font-size:14px; line-height:1.5">
-            鹿爸：追擊你；花媽：預判路線；阿水：巡邏/切換追擊；生氣鹿鹿：路口隨機。
-          </p>
-        </div>
+    <!-- Bottom Bar -->
+    <div class="card bar">
+      <div class="btns">
+        <button id="btnRestart">🔄 重新開始</button>
+        <button id="btnSound">🔊 聲音：開</button>
+        <button id="btnHelp">❓ 玩法</button>
+      </div>
+    </div>
+
+    <!-- D-Pad -->
+    <div class="card dpad">
+      <div class="dpadWrap">
+        <div class="padBtn padLeft"  id="padLeft"><div class="padIcon">←</div></div>
+        <div class="padBtn padUp"    id="padUp"><div class="padIcon">↑</div></div>
+        <div class="padBtn padRight" id="padRight"><div class="padIcon">→</div></div>
+        <div class="padBtn padDown"  id="padDown"><div class="padIcon">↓</div></div>
       </div>
     </div>
   </div>
-</div>
 
 <script>
 (() => {
@@ -221,7 +369,7 @@
     angry:  "https://github.com/z883662/Aruru/blob/main/lulu5.png?raw=true",
   };
 
-  // ====== 迷宮藍圖（28x17） ======
+  // ====== 迷宮藍圖（28x18） ======
   const MAP = [
     "############################",
     "#............##............#",
@@ -243,9 +391,6 @@
     "############################",
   ];
 
-  // 地圖解析：牆(#)、小點(.)、大點(o)、空( )、玩家(P)、敵人(G)
-  // 注意：中間兩行有空格，代表左右通道/房間區域
-
   // ====== Canvas ======
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
@@ -264,9 +409,21 @@
   const btnStart   = document.getElementById("btnStart");
   const btnRestart = document.getElementById("btnRestart");
   const btnSound   = document.getElementById("btnSound");
+  const btnHelp    = document.getElementById("btnHelp");
+
+  const helpCard = document.getElementById("helpCard");
 
   const lbBody = document.getElementById("lbBody");
   const lbHint = document.getElementById("lbHint");
+
+  const loadText = document.getElementById("loadText");
+  const loadBar  = document.getElementById("loadBar");
+
+  // D-pad
+  const padLeft  = document.getElementById("padLeft");
+  const padUp    = document.getElementById("padUp");
+  const padRight = document.getElementById("padRight");
+  const padDown  = document.getElementById("padDown");
 
   // ====== 音效（iOS/LINE：首次互動解鎖） ======
   let audioEnabled = true;
@@ -292,9 +449,10 @@
     o.start(t0);
     o.stop(t0 + dur);
   }
+  window.addEventListener("pointerdown", ensureAudioUnlocked, {passive:true});
 
   // ====== 排行榜（LocalStorage，前6名，保留7天） ======
-  const LB_KEY = "lulu_pacman_lb_v1";
+  const LB_KEY = "lulu_pacman_lb_v2";
   const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
 
   function loadLB(){
@@ -326,37 +484,93 @@
     const dd = String(d.getDate()).padStart(2,"0");
     return `${yy}-${mm}-${dd}`;
   }
+  function escapeHtml(s){
+    return (s+"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
   function renderLB(){
     const lb = loadLB();
     lbBody.innerHTML = lb.map((r,i)=>(
       `<tr><td>${i+1}</td><td>${escapeHtml(r.name)}</td><td>${r.score}</td><td>${fmtDate(r.ts)}</td></tr>`
     )).join("") || `<tr><td colspan="4" style="color:#a8abff">目前沒有紀錄</td></tr>`;
-    lbHint.textContent = lb.length ? "（自動清除超過 7 天紀錄）" : "（你會是第一名）";
+    lbHint.textContent = lb.length ? "（自動清除超過 7 天）" : "（你會是第一名）";
   }
-  function escapeHtml(s){
-    return (s+"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+  // ====== 圖片預載（含進度/失敗備援） ======
+  const images = {};
+  function loadImageWithTimeout(src, timeoutMs = 12000){
+    return new Promise((resolve, reject) => {
+      const im = new Image();
+      im.crossOrigin = "anonymous";
+
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error("timeout"));
+      }, timeoutMs);
+
+      function cleanup(){
+        clearTimeout(timer);
+        im.onload = null;
+        im.onerror = null;
+      }
+
+      im.onload = () => { cleanup(); resolve(im); };
+      im.onerror = () => { cleanup(); reject(new Error("error")); };
+      im.src = src;
+    });
+  }
+
+  async function preloadAllImages(){
+    const entries = [
+      ["player", IMG.player],
+      ["dad",    IMG.dad],
+      ["mom",    IMG.mom],
+      ["water",  IMG.water],
+      ["angry",  IMG.angry],
+    ];
+
+    let done = 0;
+    const total = entries.length;
+
+    btnStart.disabled = true;
+
+    loadText.textContent = `載入圖檔中… 0 / ${total}`;
+    loadBar.style.width = `0%`;
+
+    for (const [k, src] of entries){
+      try{ images[k] = await loadImageWithTimeout(src); }
+      catch(e){
+        images[k] = null;
+        console.warn("Image failed:", k, src, e);
+      }
+      done++;
+      loadText.textContent = `載入圖檔中… ${done} / ${total}`;
+      loadBar.style.width = `${Math.round(done/total*100)}%`;
+    }
+
+    const okCount = Object.values(images).filter(Boolean).length;
+    loadText.textContent = okCount ? "✅ 圖檔載入完成！可以開始了" : "⚠️ 圖檔載入失敗：將以備援圖形顯示角色（仍可遊玩）";
+    btnStart.disabled = false;
   }
 
   // ====== 遊戲參數 ======
-  const TILE = 30;                     // 30px per tile
+  const TILE = 30;
   const ROWS = MAP.length;
-  const COLS = MAP[0].length;          // 28
+  const COLS = MAP[0].length;
 
-  // 讓 canvas 內解析度配合 tile
   canvas.width  = COLS * TILE;
   canvas.height = ROWS * TILE;
 
-  const SPEED_PLAYER = 5.2;            // tiles per second (converted later)
+  const SPEED_PLAYER = 5.2;
   const SPEED_GHOST  = 4.8;
   const SPEED_FRIGHT = 3.2;
 
-  const POWER_TIME = 7.0;              // seconds
+  const POWER_TIME = 7.0;
   const RESPAWN_TIME = 1.6;
 
   // ====== 地圖資料 ======
-  const grid = [];   // walls
-  const dots = new Set(); // "." positions key "r,c"
-  const powers = new Set(); // "o"
+  const grid = [];
+  const dots = new Set();
+  const powers = new Set();
   let playerStart = {r:0,c:0};
   let ghostHome = {r:0,c:0};
 
@@ -382,30 +596,12 @@
   }
 
   function isWall(r,c){
-    // 左右傳送：超出視為穿越
-    if (c < 0 || c >= COLS) return false;
+    if (c < 0 || c >= COLS) return false; // tunnel
     if (r < 0 || r >= ROWS) return true;
     return grid[r][c] === 1;
   }
 
-  function wrapPos(pos){
-    if (pos.c < 0) pos.c = COLS-1;
-    if (pos.c >= COLS) pos.c = 0;
-  }
-
-  // ====== 圖片載入 ======
-  const images = {};
-  function loadImage(src){
-    return new Promise((resolve,reject)=>{
-      const im = new Image();
-      im.crossOrigin = "anonymous";
-      im.onload = ()=>resolve(im);
-      im.onerror = reject;
-      im.src = src;
-    });
-  }
-
-  // ====== 實體 ======
+  // ====== 實體 / 方向 ======
   const DIRS = {
     up:    {dr:-1, dc: 0},
     down:  {dr: 1, dc: 0},
@@ -420,7 +616,6 @@
     if (d===DIRS.right) return DIRS.left;
     return DIRS.none;
   }
-
   function canMove(r,c,dir){
     const nr = r + dir.dr;
     let nc = c + dir.dc;
@@ -429,28 +624,26 @@
     if (nr < 0 || nr >= ROWS) return false;
     return !isWall(nr,nc);
   }
-
   function atCenter(x){ return Math.abs(x - Math.round(x)) < 0.05; }
 
   // ====== 遊戲狀態 ======
   let nickName = "-";
   let score = 0;
   let lives = 3;
-  let powerLeft = 0;          // seconds
+  let powerLeft = 0;
   let running = false;
   let lastTime = 0;
 
   const player = {
     r:0, c:0, dir:DIRS.left, nextDir:DIRS.left,
     speed: SPEED_PLAYER,
-    alive:true
   };
 
   const ghosts = [
-    { name:"鹿爸",   imgKey:"dad",   r:0, c:0, dir:DIRS.left,  mode:"chase",  base:"chaser",   respawn:0 },
-    { name:"花媽",   imgKey:"mom",   r:0, c:0, dir:DIRS.right, mode:"chase",  base:"ambush",   respawn:0 },
-    { name:"阿水",   imgKey:"water", r:0, c:0, dir:DIRS.up,    mode:"chase",  base:"patrol",   respawn:0 },
-    { name:"生氣鹿鹿", imgKey:"angry", r:0, c:0, dir:DIRS.down, mode:"chase", base:"random",   respawn:0 },
+    { name:"鹿爸",     imgKey:"dad",   r:0, c:0, dir:DIRS.left,  base:"chaser", respawn:0, patrolIndex:0 },
+    { name:"花媽",     imgKey:"mom",   r:0, c:0, dir:DIRS.right, base:"ambush", respawn:0, patrolIndex:1 },
+    { name:"阿水",     imgKey:"water", r:0, c:0, dir:DIRS.up,    base:"patrol", respawn:0, patrolIndex:2 },
+    { name:"生氣鹿鹿", imgKey:"angry", r:0, c:0, dir:DIRS.down,  base:"random", respawn:0, patrolIndex:3 },
   ];
   const patrolCorners = [
     {r:1, c:1},
@@ -459,23 +652,36 @@
     {r:ROWS-2, c:COLS-2},
   ];
 
+  function syncHUD(){
+    elNick.textContent = nickName;
+    elScore.textContent = score;
+    elLives.textContent = lives;
+    elRemain.textContent = dots.size + powers.size;
+
+    if (powerLeft > 0){
+      elState.textContent = "強化";
+      elState.style.color = "var(--power)";
+    } else {
+      elState.textContent = "一般";
+      elState.style.color = "var(--ok)";
+    }
+  }
+
   function resetGame(){
     parseMap();
     score = 0;
     lives = 3;
     powerLeft = 0;
+
     player.r = playerStart.r;
     player.c = playerStart.c;
     player.dir = DIRS.left;
     player.nextDir = DIRS.left;
-    player.alive = true;
 
-    // ghosts start around home
     ghosts.forEach((g,i)=>{
       g.r = ghostHome.r;
       g.c = ghostHome.c + (i%2===0 ? -1 : 1);
       g.dir = (i%2===0 ? DIRS.left : DIRS.right);
-      g.mode = "chase";
       g.respawn = 0;
       g.patrolIndex = i % patrolCorners.length;
     });
@@ -485,21 +691,7 @@
     syncHUD();
   }
 
-  function syncHUD(){
-    elNick.textContent = nickName;
-    elScore.textContent = score;
-    elLives.textContent = lives;
-    elRemain.textContent = dots.size + powers.size;
-    if (powerLeft > 0){
-      elState.textContent = "強化";
-      elState.style.color = "var(--power)";
-    }else{
-      elState.textContent = "一般";
-      elState.style.color = "var(--ok)";
-    }
-  }
-
-  // ====== 目標選擇（鬼 AI） ======
+  // ====== AI ======
   function dist2(a,b){
     const dr = a.r - b.r, dc = a.c - b.c;
     return dr*dr + dc*dc;
@@ -508,7 +700,6 @@
   function chooseDirToward(entity, target, avoidOpposite=true){
     const r = Math.round(entity.r);
     const c = Math.round(entity.c);
-
     const options = [DIRS.up, DIRS.left, DIRS.down, DIRS.right].filter(d => canMove(r,c,d));
     if (!options.length) return entity.dir;
 
@@ -522,10 +713,7 @@
       if (nc < 0) nc = COLS-1;
       if (nc >= COLS) nc = 0;
       const s = dist2({r:nr,c:nc}, target);
-      if (s < bestScore){
-        bestScore = s;
-        best = d;
-      }
+      if (s < bestScore){ bestScore = s; best = d; }
     }
     return best;
   }
@@ -533,7 +721,6 @@
   function chooseDirAway(entity, target){
     const r = Math.round(entity.r);
     const c = Math.round(entity.c);
-
     const options = [DIRS.up, DIRS.left, DIRS.down, DIRS.right].filter(d => canMove(r,c,d));
     if (!options.length) return entity.dir;
 
@@ -547,10 +734,7 @@
       if (nc < 0) nc = COLS-1;
       if (nc >= COLS) nc = 0;
       const s = dist2({r:nr,c:nc}, target);
-      if (s > bestScore){
-        bestScore = s;
-        best = d;
-      }
+      if (s > bestScore){ bestScore = s; best = d; }
     }
     return best;
   }
@@ -562,70 +746,48 @@
     if (g.base === "chaser"){
       return {r: pr, c: pc};
     }
-
     if (g.base === "ambush"){
-      // 目標 = 玩家前方 4 格
       const pd = player.dir;
       let tr = pr + pd.dr * 4;
       let tc = pc + pd.dc * 4;
-      // clamp within map rows, wrap cols
       tr = Math.max(1, Math.min(ROWS-2, tr));
       if (tc < 0) tc = COLS-1;
       if (tc >= COLS) tc = 0;
       return {r: tr, c: tc};
     }
-
     if (g.base === "patrol"){
-      // 平常巡邏角落，接近玩家就追
       const me = {r: Math.round(g.r), c: Math.round(g.c)};
       const playerHere = {r: pr, c: pc};
-      if (dist2(me, playerHere) <= 36){ // within ~6 tiles
-        return playerHere;
-      }
+      if (dist2(me, playerHere) <= 36) return playerHere; // 接近就追
       const corner = patrolCorners[g.patrolIndex];
-      if (dist2(me, corner) <= 4){
-        g.patrolIndex = (g.patrolIndex + 1) % patrolCorners.length;
-      }
+      if (dist2(me, corner) <= 4) g.patrolIndex = (g.patrolIndex + 1) % patrolCorners.length;
       return patrolCorners[g.patrolIndex];
     }
-
-    // random
     return {r: pr, c: pc};
   }
 
-  // ====== 移動更新 ======
+  // ====== 移動 ======
   function stepEntity(ent, dt, speed){
-    // dt seconds, speed tiles/sec
     const move = speed * dt;
 
-    // 在格子中心才允許轉向
     if (atCenter(ent.r) && atCenter(ent.c)){
       const r = Math.round(ent.r);
       const c = Math.round(ent.c);
 
-      // 玩家用 nextDir
       if (ent === player){
         if (canMove(r,c,ent.nextDir)) ent.dir = ent.nextDir;
         else if (!canMove(r,c,ent.dir)) ent.dir = DIRS.none;
-      }
-
-      // 走到路口，對鬼做決策
-      if (ent !== player){
+      } else {
         if (ent.respawn > 0){
-          // respawn：直接往家走
           ent.dir = chooseDirToward(ent, ghostHome, true);
         } else if (powerLeft > 0){
-          // frightened：遠離玩家
           ent.dir = chooseDirAway(ent, {r: Math.round(player.r), c: Math.round(player.c)});
         } else {
           if (ent.base === "random"){
-            // 隨機但不立刻回頭
             const options = [DIRS.up, DIRS.left, DIRS.down, DIRS.right].filter(d => canMove(r,c,d));
             const filtered = options.filter(d => d !== opposite(ent.dir));
             const list = (filtered.length ? filtered : options);
-            if (list.length){
-              ent.dir = list[Math.floor(Math.random()*list.length)];
-            }
+            if (list.length) ent.dir = list[Math.floor(Math.random()*list.length)];
           } else {
             const target = getGhostTarget(ent);
             ent.dir = chooseDirToward(ent, target, true);
@@ -634,15 +796,13 @@
       }
     }
 
-    // 實際位移
     let nr = ent.r + ent.dir.dr * move;
     let nc = ent.c + ent.dir.dc * move;
 
-    // Wrap tunnel
+    // tunnel wrap
     if (nc < 0) nc = COLS - 0.01;
     if (nc >= COLS) nc = 0.01;
 
-    // 碰牆處理：如果下一格是牆，卡回中心
     if (ent.dir !== DIRS.none){
       const tr = Math.round(nr);
       const tc = Math.round(nc);
@@ -655,11 +815,11 @@
     }
   }
 
-  // ====== 遊戲邏輯 ======
+  // ====== 吃點 ======
   function tryEat(){
     const r = Math.round(player.r);
     const c = Math.round(player.c);
-    const k = key(r,c);
+    const k = r + "," + c;
 
     if (dots.has(k)){
       dots.delete(k);
@@ -686,7 +846,6 @@
       gameOver();
       return;
     }
-    // reset positions only
     player.r = playerStart.r;
     player.c = playerStart.c;
     player.dir = DIRS.left;
@@ -708,7 +867,7 @@
     updateLB(nickName, score);
 
     modalTitle.textContent = "遊戲結束！";
-    modalText.textContent = `你的分數：${score}。要不要再來一局？`;
+    modalText.textContent = `你的分數：${score}`;
     overlay.style.display = "flex";
     btnStart.textContent = "再玩一次";
   }
@@ -723,14 +882,23 @@
   }
 
   // ====== 繪圖 ======
+  function drawSprite(img, x, y, size, fallbackColor="#ffffff"){
+    if (img){
+      ctx.drawImage(img, x - size/2, y - size/2, size, size);
+      return;
+    }
+    ctx.fillStyle = fallbackColor;
+    ctx.beginPath();
+    ctx.arc(x, y, size/2, 0, Math.PI*2);
+    ctx.fill();
+  }
+
   function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    // 背景
     ctx.fillStyle = "#000";
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    // 牆
+    // walls
     ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--wall").trim() || "#2f6bff";
     ctx.lineWidth = 4;
     ctx.lineJoin = "round";
@@ -743,7 +911,7 @@
       }
     }
 
-    // 點點
+    // dots
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--dot").trim() || "#ffd3b6";
     dots.forEach(k=>{
       const [r,c] = k.split(",").map(Number);
@@ -754,7 +922,7 @@
       ctx.fill();
     });
 
-    // 能量果
+    // power
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--power").trim() || "#ffe066";
     powers.forEach(k=>{
       const [r,c] = k.split(",").map(Number);
@@ -765,28 +933,16 @@
       ctx.fill();
     });
 
-    // 中央屋子提示線（裝飾）
-    const hx = ghostHome.c * TILE;
-    const hy = ghostHome.r * TILE;
-    ctx.strokeStyle = "#ffffff22";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(hx - TILE*2, hy - TILE*1, TILE*5, TILE*3);
-
-    // 角色：用圖片繪制
-    drawSprite(images.player, player.c*TILE + TILE/2, player.r*TILE + TILE/2, 24);
+    // sprites
+    drawSprite(images.player, player.c*TILE + TILE/2, player.r*TILE + TILE/2, 26, "#ffe066");
 
     ghosts.forEach(g=>{
-      if (g.respawn > 0){
-        // 變淡表示回家中
-        ctx.globalAlpha = 0.55;
-      } else if (powerLeft > 0){
-        // frightened：加藍色遮罩
-        ctx.globalAlpha = 1.0;
-      }
-      drawSprite(images[g.imgKey], g.c*TILE + TILE/2, g.r*TILE + TILE/2, 24);
+      const colorMap = { dad:"#ff5a7a", mom:"#ff9bd6", water:"#51ffb0", angry:"#ff7f2a" };
+
+      if (g.respawn > 0) ctx.globalAlpha = 0.55;
+      drawSprite(images[g.imgKey], g.c*TILE + TILE/2, g.r*TILE + TILE/2, 26, colorMap[g.imgKey] || "#ffffff");
 
       if (powerLeft > 0 && g.respawn <= 0){
-        // frightened 簡單藍罩
         ctx.globalAlpha = 0.35;
         ctx.fillStyle = "#3aa0ff";
         ctx.beginPath();
@@ -796,15 +952,7 @@
       ctx.globalAlpha = 1.0;
     });
 
-    // 狀態文字
-    if (!running){
-      ctx.fillStyle = "#ffffffaa";
-      ctx.font = "bold 22px system-ui, -apple-system, Segoe UI";
-      ctx.textAlign = "center";
-      ctx.fillText("點擊「開始遊戲」", canvas.width/2, canvas.height/2);
-    }
-
-    // 強化倒數
+    // power timer
     if (powerLeft > 0){
       ctx.fillStyle = "#ffe066";
       ctx.font = "bold 16px system-ui, -apple-system, Segoe UI";
@@ -813,12 +961,7 @@
     }
   }
 
-  function drawSprite(img, x, y, size){
-    if (!img) return;
-    ctx.drawImage(img, x - size/2, y - size/2, size, size);
-  }
-
-  // ====== 主迴圈 ======
+  // ====== loop ======
   function loop(t){
     if (!running){
       draw();
@@ -828,31 +971,20 @@
     const dt = Math.min(0.04, (t - lastTime) / 1000);
     lastTime = t;
 
-    // power time
-    if (powerLeft > 0){
-      powerLeft = Math.max(0, powerLeft - dt);
-    }
+    if (powerLeft > 0) powerLeft = Math.max(0, powerLeft - dt);
 
-    // move player
-    stepEntity(player, dt, player.speed);
-
-    // eat
+    stepEntity(player, dt, SPEED_PLAYER);
     tryEat();
 
-    // move ghosts
     ghosts.forEach(g=>{
-      if (g.respawn > 0){
-        g.respawn = Math.max(0, g.respawn - dt);
-      }
+      if (g.respawn > 0) g.respawn = Math.max(0, g.respawn - dt);
       const spd = (powerLeft > 0 && g.respawn<=0) ? SPEED_FRIGHT : SPEED_GHOST;
       stepEntity(g, dt, spd);
     });
 
-    // collisions
     for (const g of ghosts){
       if (collide(player,g)){
         if (powerLeft > 0 && g.respawn<=0){
-          // eat ghost
           score += 10;
           beep(820, 0.06, "triangle", 0.03);
           g.respawn = RESPAWN_TIME;
@@ -867,17 +999,14 @@
       }
     }
 
-    // win condition
-    if (dots.size + powers.size === 0){
-      win();
-    }
+    if (dots.size + powers.size === 0) win();
 
     syncHUD();
     draw();
     requestAnimationFrame(loop);
   }
 
-  // ====== 輸入：鍵盤 ======
+  // ====== 桌機鍵盤（保留） ======
   window.addEventListener("keydown", (e)=>{
     ensureAudioUnlocked();
     const k = e.key.toLowerCase();
@@ -887,27 +1016,22 @@
     if (k === "arrowright" || k === "d") player.nextDir = DIRS.right;
   }, {passive:true});
 
-  // ====== 輸入：手機滑動 ======
-  let touchStart = null;
-  canvas.addEventListener("pointerdown", (e)=>{
-    ensureAudioUnlocked();
-    touchStart = {x:e.clientX, y:e.clientY};
-  });
-  canvas.addEventListener("pointerup", (e)=>{
-    if (!touchStart) return;
-    const dx = e.clientX - touchStart.x;
-    const dy = e.clientY - touchStart.y;
-    touchStart = null;
-    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+  // ====== 手機方向鍵操控 ======
+  function bindPad(el, dir){
+    const set = (ev) => {
+      ev.preventDefault();
+      ensureAudioUnlocked();
+      player.nextDir = dir;
+      beep(480, 0.02, "sine", 0.015);
+    };
+    el.addEventListener("pointerdown", set, {passive:false});
+  }
+  bindPad(padLeft, DIRS.left);
+  bindPad(padUp, DIRS.up);
+  bindPad(padRight, DIRS.right);
+  bindPad(padDown, DIRS.down);
 
-    if (Math.abs(dx) > Math.abs(dy)){
-      player.nextDir = dx > 0 ? DIRS.right : DIRS.left;
-    } else {
-      player.nextDir = dy > 0 ? DIRS.down : DIRS.up;
-    }
-  });
-
-  // ====== UI actions ======
+  // ====== Buttons ======
   btnSound.addEventListener("click", ()=>{
     ensureAudioUnlocked();
     audioEnabled = !audioEnabled;
@@ -920,6 +1044,18 @@
     resetGame();
   });
 
+  btnHelp.addEventListener("click", ()=>{
+    ensureAudioUnlocked();
+    const showing = (helpCard.style.display === "block");
+    helpCard.style.display = showing ? "none" : "block";
+  });
+
+  // 點背景也可關閉玩法
+  helpCard.addEventListener("click", (e)=> e.stopPropagation());
+  canvas.addEventListener("pointerdown", ()=>{
+    if (helpCard.style.display === "block") helpCard.style.display = "none";
+  });
+
   btnStart.addEventListener("click", ()=>{
     ensureAudioUnlocked();
     let name = (nameInput.value || "").trim();
@@ -930,31 +1066,16 @@
     resetGame();
   });
 
-  // 首次點擊 anywhere 解鎖聲音（LINE/iOS）
-  window.addEventListener("pointerdown", ensureAudioUnlocked, {once:false, passive:true});
-
   // ====== init ======
   async function init(){
     renderLB();
     parseMap();
     syncHUD();
 
-    // load images
-    const entries = [
-      ["player", IMG.player],
-      ["dad",    IMG.dad],
-      ["mom",    IMG.mom],
-      ["water",  IMG.water],
-      ["angry",  IMG.angry],
-    ];
-
-    for (const [k,src] of entries){
-      try{ images[k] = await loadImage(src); }
-      catch(e){ images[k] = null; console.warn("image failed", k, e); }
-    }
-
     overlay.style.display = "flex";
     running = false;
+
+    await preloadAllImages();
     requestAnimationFrame(loop);
   }
 
