@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>阿鹿鹿文創-精靈鹿鹿 GO！</title>
 
-  <!-- ✅ (5) 自動導入 LINE 名稱：若你在 LIFF 內使用，請保留 -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
   <style>
     :root{
       --bg:#fdecef;
@@ -21,11 +18,9 @@
       --btn:#111;
       --btnText:#fff;
 
-      /* 地圖底：暗淡泥土黃色系 */
       --mapBase:#D8C07A;
       --mapSpot:#B28B5E;
 
-      /* 牆：黃底＋紅棕條紋＋黑棕邊框（明顯） */
       --wallBase:#FFD46A;
       --wallStripe:#B2562E;
       --wallBorder:#2B1A12;
@@ -62,7 +57,6 @@
       gap:10px;
     }
 
-    /* ===== Top bar ===== */
     .topbar{
       padding-top: var(--safeT);
       display:flex;
@@ -91,7 +85,6 @@
     .pillBtn:active{ transform:translateY(1px) }
     .pillDark{ background: var(--btn); color: var(--btnText); border:1px solid #000; }
 
-    /* ===== Audio panel：只保留開關（2）（3 移除暱稱輸入） ===== */
     .audioPanel{
       background: var(--panel);
       border:1px solid var(--line);
@@ -102,12 +95,7 @@
       gap:22px;
       flex:0 0 auto;
     }
-    .check{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      font-size:14px;
-    }
+    .check{ display:flex; align-items:center; gap:8px; font-size:14px; }
     .check input{ width:18px; height:18px; }
     .hint{
       margin-left:auto;
@@ -120,7 +108,6 @@
       max-width: 55%;
     }
 
-    /* ===== Game area ===== */
     .gameWrap{
       flex:1 1 auto;
       min-height:0;
@@ -139,11 +126,9 @@
       display:block;
       touch-action:none;
       image-rendering: pixelated;
-      /* 由 JS 動態計算 max-height，避免被下方按鍵遮蔽（4） */
       max-height: 100%;
     }
 
-    /* ===== Start countdown ===== */
     .countdown{
       position:absolute;
       inset:0;
@@ -151,6 +136,7 @@
       align-items:center;
       justify-content:center;
       pointer-events:none;
+      z-index:5;
     }
     .countdown .bubble{
       background: rgba(0,0,0,.45);
@@ -175,7 +161,6 @@
       letter-spacing:.08em;
     }
 
-    /* ===== Bottom dpad：放大、吃滿空間（你前一版需求） ===== */
     .dpad{
       background: var(--panel);
       border:1px solid var(--line);
@@ -215,7 +200,6 @@
     .padRight{grid-column:3; grid-row:1;}
     .padDown {grid-column:2; grid-row:2;}
 
-    /* ===== Overlays ===== */
     .overlay{
       position:fixed;
       inset:0;
@@ -256,8 +240,6 @@
 
 <body>
   <div class="app" id="appRoot">
-
-    <!-- ===== Topbar ===== -->
     <div class="topbar" id="topbar">
       <div class="brandRow">
         <div>
@@ -272,11 +254,9 @@
 
         <div class="pill pillBtn" id="btnHelp">玩法</div>
         <div class="pill pillBtn pillDark" id="btnStart">開始</div>
-        <!-- ✅ (1) 移除「查詢排行榜」按鈕 -->
       </div>
     </div>
 
-    <!-- ===== Audio Panel：只保留開關 ===== -->
     <div class="audioPanel" id="audioPanel">
       <div class="check">
         <input type="checkbox" id="chkBgm" checked />
@@ -286,13 +266,11 @@
         <input type="checkbox" id="chkSfx" checked />
         <label for="chkSfx">音效</label>
       </div>
-      <div class="hint">LINE/iOS 需第一次點擊後才允許播放聲音（已處理）。</div>
+      <div class="hint">點「開始」會自動抓 LINE 名稱（需授權）。</div>
     </div>
 
-    <!-- ===== Game ===== -->
     <div class="gameWrap" id="gameWrap">
       <canvas id="game" width="840" height="510"></canvas>
-
       <div class="countdown" id="countdown">
         <div class="bubble">
           <div class="n" id="cdNum">3</div>
@@ -301,7 +279,6 @@
       </div>
     </div>
 
-    <!-- ===== D-pad ===== -->
     <div class="dpad" id="dpad">
       <div class="padBtn padLeft"  id="padLeft">←</div>
       <div class="padBtn padUp"    id="padUp">↑</div>
@@ -310,17 +287,16 @@
     </div>
   </div>
 
-  <!-- ===== HELP Overlay ===== -->
   <div class="overlay" id="helpOverlay">
     <div class="modal">
       <div class="modalTitle">阿鹿鹿文創-精靈鹿鹿 GO！｜玩法</div>
       <div class="modalText">
         🦌 <b>操作：</b>方向鍵移動（手機點下方方向鍵；桌機方向鍵/WASD）。<br/>
-        🍃 <b>嫩葉點：</b>地圖上的 <b>小嫩葉</b>，吃到 <b>+1 分</b>。<br/>
-        🍍 <b>能量果：</b>地圖上的 <b>金色能量果</b>，吃到 <b>+5 分</b>，並進入 <b>強化模式（7 秒）</b>。<br/><br/>
-        ⚡ <b>強化模式（7 秒）：</b>敵人會有 <b>藍色弱化光圈</b>、速度變慢；碰到可 <b>反吃 +10 分</b>。<br/>
-        ✨ <b>重生無敵：</b>每次重生後 <b>3 秒無敵</b>（身上有特殊光亮）。<br/>
-        🏃 <b>速度：</b>敵人開局為玩家 <b>75%</b>，隨時間增加，上限 <b>不超過 95%</b>。<br/>
+        🍃 <b>嫩葉點：</b>吃到 <b>+1 分</b>。<br/>
+        🍍 <b>能量果：</b>吃到 <b>+5 分</b>，進入 <b>強化 7 秒</b>。<br/>
+        ⚡ <b>強化：</b>敵人出現 <b>藍色弱化光圈</b>、變慢；碰到可 <b>反吃 +10 分</b>。<br/>
+        ✨ <b>重生無敵：</b>重生後 <b>3 秒無敵</b>。<br/>
+        🏃 <b>速度：</b>敵人開局為玩家 <b>75%</b>，隨時間增加，上限 <b>95%</b>。<br/>
       </div>
       <div class="modalBtns">
         <button class="mBtn" id="helpClose">關閉</button>
@@ -329,7 +305,6 @@
     </div>
   </div>
 
-  <!-- ===== Leaderboard Overlay（只在結算時顯示） ===== -->
   <div class="overlay" id="lbOverlay">
     <div class="modal">
       <div class="modalTitle">排行榜（保留 7 天，僅顯示前 6 名）</div>
@@ -340,7 +315,7 @@
           <tbody id="lbBody"></tbody>
         </table>
       </div>
-      <div class="smallNote">提示：分數越高越前面；超過 7 天的紀錄會自動清除。</div>
+      <div class="smallNote">分數越高越前面；超過 7 天會自動清除。</div>
       <div class="modalBtns">
         <button class="mBtn dark" id="lbClose">關閉</button>
       </div>
@@ -350,23 +325,15 @@
 <script>
 (() => {
   // =========================
-  // (5) LIFF：自動導入 LINE 名稱
+  // OAuth endpoints（與 worker.js 對應）
   // =========================
-  // ✅ 若你要在 LIFF 正式環境使用：把這裡改成你的 LIFF ID
-  const LIFF_ID = "2008825801-LXHTWx5N"; // 例："2001234567-xxxxxxxx"
-
-  async function tryLoadLineName(){
-    try{
-      if (!window.liff) return null;
-      if (!LIFF_ID) return null; // 沒填就不初始化，避免一般網頁報錯
-      await liff.init({ liffId: LIFF_ID });
-      if (!liff.isLoggedIn()) return null;
-      const p = await liff.getProfile();
-      return (p && p.displayName) ? p.displayName : null;
-    }catch(e){
-      return null;
-    }
-  }
+  // ✅ 如果你的 worker 跟前端同網域，可用相對路徑
+  // ✅ 如果不同網域，改成完整網址，例如 "https://xxx.workers.dev/me"
+  const API = {
+    me: "/me",
+    auth: "/auth",
+    logout: "/logout",
+  };
 
   // ===== Assets =====
   const IMG = {
@@ -377,7 +344,6 @@
     angry:  "https://raw.githubusercontent.com/z883662/Aruru/main/lulu5.png",
   };
 
-  // ===== Base Map (template) =====
   const BASE_MAP = [
     "############################",
     "#............##............#",
@@ -447,25 +413,19 @@
     return `${yy}-${mm}-${dd}`;
   }
 
-  // =========================
-  // (4) 重新計算畫布可用高度：避免下方按鍵遮蔽
-  // =========================
+  // ===== Layout: avoid being covered =====
   function layoutCanvas(){
-    // appRoot 有 padding + gap，這裡抓實際 offsetHeight 計算
     const appH = appRoot.clientHeight;
     const topH = topbar.offsetHeight;
     const audH = audioPanel.offsetHeight;
     const dpadH = dpad.offsetHeight;
-
-    // gap 估算：app gap=10px，topbar/audio/game/dpad 之間大約 3 個 gap
     const gaps = 10 * 3;
-
     const available = Math.max(120, appH - topH - audH - dpadH - gaps);
     canvas.style.maxHeight = available + "px";
   }
   window.addEventListener("resize", layoutCanvas);
 
-  // ===== Leaderboard（只結算時顯示）（1） =====
+  // ===== Leaderboard (end-only) =====
   const LB_KEY = "aruru_maze_lb_v2";
   const KEEP_MS = 7*24*60*60*1000;
 
@@ -504,26 +464,19 @@
     uiBest.textContent = lb.length ? lb[0].score : 0;
   }
 
-  // ===== Audio（2：移除音量滑桿，只保留開關） =====
-  let audioCtx = null;
-  let unlocked = false;
+  // ===== Audio: toggle-only =====
+  let audioCtx=null, unlocked=false;
+  let bgmOn=true, sfxOn=true;
 
-  let bgmOn = true;
-  let sfxOn = true;
+  let bgmGain=null, bgmTimer=null, bgmNextTime=0, bgmStep=0;
 
-  let bgmGain = null;
-  let bgmTimer = null;
-  let bgmNextTime = 0;
-  let bgmStep = 0;
-
-  // 固定溫和音量（不再由 slider 控制）
-  const BGM_VOL = 0.12;
-  const SFX_VOL = 0.90;
+  const BGM_VOL=0.12;
+  const SFX_VOL=0.90;
 
   function ensureAudio(){
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === "suspended") audioCtx.resume();
-    unlocked = true;
+    if (audioCtx.state==="suspended") audioCtx.resume();
+    unlocked=true;
   }
   window.addEventListener("pointerdown", ensureAudio, {passive:true});
 
@@ -546,21 +499,13 @@
 
   function scheduleBgm(){
     if (!audioCtx || !bgmGain) return;
+    const tempo=132;
+    const stepDur=60/tempo/2;
+    const lookAhead=0.12;
+    const now=audioCtx.currentTime;
 
-    const tempo = 132;
-    const stepDur = 60/tempo/2;
-    const lookAhead = 0.12;
-    const now = audioCtx.currentTime;
-
-    // 輕鬆愉快 BGM（簡單旋律）
-    const melody = [
-      72, 76, 79, 76, 74, 76, 72, 0,
-      72, 76, 79, 84, 83, 79, 76, 0
-    ];
-    const bass = [
-      48, 0, 48, 0, 50, 0, 50, 0,
-      45, 0, 45, 0, 43, 0, 43, 0
-    ];
+    const melody=[72,76,79,76,74,76,72,0, 72,76,79,84,83,79,76,0];
+    const bass  =[48,0,48,0,50,0,50,0, 45,0,45,0,43,0,43,0];
 
     while (bgmNextTime < now + lookAhead){
       const idx = bgmStep % melody.length;
@@ -571,9 +516,8 @@
         playTone(f*2, bgmNextTime, stepDur*0.55, "triangle", 0.03);
       }
       const b = bass[idx];
-      if (b){
-        playTone(midiToHz(b), bgmNextTime, stepDur*0.95, "sine", 0.05);
-      }
+      if (b) playTone(midiToHz(b), bgmNextTime, stepDur*0.95, "sine", 0.05);
+
       bgmNextTime += stepDur;
       bgmStep++;
     }
@@ -593,58 +537,51 @@
   }
 
   function stopBgm(){
-    if (bgmTimer){ clearInterval(bgmTimer); bgmTimer = null; }
+    if (bgmTimer){ clearInterval(bgmTimer); bgmTimer=null; }
     if (bgmGain){
-      const t = audioCtx.currentTime;
+      const t=audioCtx.currentTime;
       try{
         bgmGain.gain.cancelScheduledValues(t);
         bgmGain.gain.setValueAtTime(bgmGain.gain.value, t);
         bgmGain.gain.exponentialRampToValueAtTime(0.0001, t+0.15);
       }catch(e){}
       setTimeout(()=>{ try{ bgmGain.disconnect(); }catch(e){} }, 220);
-      bgmGain = null;
+      bgmGain=null;
     }
-  }
-
-  // ✅ BUG 音效：輕鬆愉快 boop（固定音量）
-  function sfxBug(){
-    if (!unlocked || !sfxOn) return;
-    const t0 = audioCtx.currentTime;
-
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = "triangle";
-
-    o.frequency.setValueAtTime(520, t0);
-    o.frequency.exponentialRampToValueAtTime(760, t0+0.035);
-    o.frequency.exponentialRampToValueAtTime(560, t0+0.075);
-
-    const baseG = 0.03 * SFX_VOL;
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, baseG), t0+0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0+0.11);
-
-    o.connect(g).connect(audioCtx.destination);
-    o.start(t0);
-    o.stop(t0+0.12);
   }
 
   function sfxBeep(freq=520, dur=0.05, type="sine"){
     if (!unlocked || !sfxOn) return;
-    const t0 = audioCtx.currentTime;
-
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = type;
+    const t0=audioCtx.currentTime;
+    const o=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    o.type=type;
     o.frequency.setValueAtTime(freq, t0);
-
-    const g0 = 0.03 * SFX_VOL;
-    g.gain.setValueAtTime(Math.max(0.0001, g0), t0);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-
+    const g0=0.03*SFX_VOL;
+    g.gain.setValueAtTime(Math.max(0.0001,g0), t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
     o.connect(g).connect(audioCtx.destination);
     o.start(t0);
-    o.stop(t0 + dur);
+    o.stop(t0+dur);
+  }
+
+  // ✅ BUG 音效（輕鬆愉快）
+  function sfxBug(){
+    if (!unlocked || !sfxOn) return;
+    const t0=audioCtx.currentTime;
+    const o=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    o.type="triangle";
+    o.frequency.setValueAtTime(520, t0);
+    o.frequency.exponentialRampToValueAtTime(760, t0+0.035);
+    o.frequency.exponentialRampToValueAtTime(560, t0+0.075);
+    const baseG=0.03*SFX_VOL;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001,baseG), t0+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+0.11);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t0);
+    o.stop(t0+0.12);
   }
 
   chkBgm.addEventListener("change", ()=>{
@@ -654,77 +591,86 @@
   });
   chkSfx.addEventListener("change", ()=>{ sfxOn = chkSfx.checked; });
 
+  // ===== OAuth: get LINE displayName =====
+  async function fetchMe(){
+    try{
+      const r = await fetch(API.me, { credentials:"include" });
+      if (!r.ok) return { loggedIn:false };
+      const j = await r.json();
+      return j && j.loggedIn ? j : { loggedIn:false };
+    }catch(e){
+      return { loggedIn:false };
+    }
+  }
+
+  function startOAuthLogin(){
+    const returnTo = location.href;
+    const u = new URL(API.auth, location.origin);
+    u.searchParams.set("return", returnTo);
+    location.href = u.toString();
+  }
+
   // ===== Images preload =====
   const images = {};
   function loadImage(src, timeoutMs=15000){
     return new Promise((resolve,reject)=>{
-      const im = new Image();
-      const timer = setTimeout(()=>{ cleanup(); reject(new Error("timeout")); }, timeoutMs);
+      const im=new Image();
+      const timer=setTimeout(()=>{ cleanup(); reject(new Error("timeout")); }, timeoutMs);
       function cleanup(){ clearTimeout(timer); im.onload=null; im.onerror=null; }
-      im.onload = ()=>{ cleanup(); resolve(im); };
-      im.onerror = ()=>{ cleanup(); reject(new Error("error")); };
+      im.onload=()=>{ cleanup(); resolve(im); };
+      im.onerror=()=>{ cleanup(); reject(new Error("error")); };
       im.src = src + (src.includes("?") ? "&" : "?") + "v=" + Date.now();
     });
   }
   async function preloadImages(){
-    const entries = Object.entries(IMG);
-    for (const [k,src] of entries){
-      try{ images[k] = await loadImage(src); }
-      catch(e){ images[k] = null; }
+    for (const [k,src] of Object.entries(IMG)){
+      try{ images[k]=await loadImage(src); }catch(e){ images[k]=null; }
     }
   }
 
-  // ===== Game map state =====
-  const TILE = 30;
+  // ===== Map state (randomize each restart) =====
+  const TILE=30;
+  let currentMap=BASE_MAP.slice();
+  let ROWS=currentMap.length;
+  let COLS=currentMap[0].length;
 
-  let currentMap = BASE_MAP.slice();
-  let ROWS = currentMap.length;
-  let COLS = currentMap[0].length;
-
-  const grid = [];
-  const leaves = new Set();
-  const powers = new Set();
-  let playerStart = {r:0,c:0};
-  let ghostHome = {r:0,c:0};
+  const grid=[];
+  const leaves=new Set();
+  const powers=new Set();
+  let playerStart={r:0,c:0};
+  let ghostHome={r:0,c:0};
 
   canvas.width = COLS*TILE;
   canvas.height = ROWS*TILE;
 
-  // ===== Game constants =====
-  const SPEED_PLAYER = 5.2;
-  const GHOST_MIN_RATIO = 0.75;
-  const GHOST_MAX_RATIO = 0.95;
-  const GHOST_RAMP_SECS = 110;
+  const SPEED_PLAYER=5.2;
+  const GHOST_MIN_RATIO=0.75;
+  const GHOST_MAX_RATIO=0.95;
+  const GHOST_RAMP_SECS=110;
 
-  const POWER_TIME = 7.0;
-  const INVINCIBLE_TIME = 3.0;
-  const WEAK_RATIO = 0.72;
-  const RESPAWN_TIME = 1.2;
+  const POWER_TIME=7.0;
+  const INVINCIBLE_TIME=3.0;
+  const WEAK_RATIO=0.72;
+  const RESPAWN_TIME=1.2;
 
-  // ===== Random maze：盡量避免死路、確保關鍵點可達 =====
-  const RAND = {
-    maxHoleOpens: 28,
-    attempts: 380,
-    protectRadius: 1,
-    deadendFixPasses: 2
-  };
+  const RAND={ maxHoleOpens:28, attempts:380, protectRadius:1, deadendFixPasses:2 };
 
   function kCell(r,c){ return r+","+c; }
 
   function buildProtectedMask(mapArr){
-    const prot = Array.from({length:ROWS}, ()=> Array(COLS).fill(false));
-    const important = [];
+    const prot=Array.from({length:ROWS},()=>Array(COLS).fill(false));
+    const important=[];
     for (let r=0;r<ROWS;r++){
       for (let c=0;c<COLS;c++){
-        const ch = mapArr[r][c];
-        if (ch==="P" || ch==="G" || ch==="o") important.push({r,c});
+        const ch=mapArr[r][c];
+        if (ch==="P"||ch==="G"||ch==="o") important.push({r,c});
       }
     }
     for (const p of important){
       for (let dr=-RAND.protectRadius; dr<=RAND.protectRadius; dr++){
         for (let dc=-RAND.protectRadius; dc<=RAND.protectRadius; dc++){
           const rr=p.r+dr, cc=p.c+dc;
-          if (rr>=0 && rr<ROWS && cc>=0 && cc<COLS) prot[rr][cc]=true;
+          if (rr>=0&&rr<ROWS&&cc>=0&&cc<COLS) prot[rr][cc]=true;
         }
       }
     }
@@ -741,7 +687,7 @@
       }
     }
     const q=[{r:sr,c:sc}];
-    const vis=Array.from({length:ROWS}, ()=> Array(COLS).fill(false));
+    const vis=Array.from({length:ROWS},()=>Array(COLS).fill(false));
     vis[sr][sc]=true;
     const dirs=[[-1,0],[1,0],[0,-1],[0,1]];
     while(q.length){
@@ -783,19 +729,17 @@
     if (r<0||r>=ROWS||c<0||c>=COLS) return false;
     return mapArr[r][c]!=="#";
   }
-
   function degree4(mapArr,r,c){
     let deg=0;
-    const up   = (r-1>=0) ? passable(mapArr,r-1,c) : false;
-    const down = (r+1<ROWS) ? passable(mapArr,r+1,c) : false;
-    const left = passable(mapArr,r,(c-1+COLS)%COLS);
-    const right= passable(mapArr,r,(c+1)%COLS);
+    const up=(r-1>=0) ? passable(mapArr,r-1,c) : false;
+    const down=(r+1<ROWS) ? passable(mapArr,r+1,c) : false;
+    const left=passable(mapArr,r,(c-1+COLS)%COLS);
+    const right=passable(mapArr,r,(c+1)%COLS);
     if (up) deg++; if (down) deg++; if (left) deg++; if (right) deg++;
     return deg;
   }
 
   function fixDeadEnds(mapArr, prot){
-    let changed=0;
     const candidates=[];
     for (let r=1;r<ROWS-1;r++){
       for (let c=0;c<COLS;c++){
@@ -810,7 +754,6 @@
     }
 
     const dirs=[{dr:-1,dc:0},{dr:1,dc:0},{dr:0,dc:-1},{dr:0,dc:1}];
-
     for (const cell of candidates){
       const r=cell.r, c=cell.c;
       if (degree4(mapArr,r,c)!==1) continue;
@@ -842,29 +785,24 @@
 
         if (score>bestScore){ bestScore=score; best={rr,cc}; }
       }
-
       if (!best) continue;
 
-      const row = mapArr[best.rr];
-      const testRow = row.slice(0,best.cc) + "." + row.slice(best.cc+1);
-      const testMap = mapArr.slice();
+      const row=mapArr[best.rr];
+      const testRow=row.slice(0,best.cc) + "." + row.slice(best.cc+1);
+      const testMap=mapArr.slice();
       testMap[best.rr]=testRow;
 
       if (!isAllImportantReachable(testMap)) continue;
-
       mapArr=testMap;
-      changed++;
     }
-
-    return {mapArr, changed};
+    return mapArr;
   }
 
   function randomizeMap(){
     let mapArr = BASE_MAP.slice();
-    ROWS = mapArr.length;
-    COLS = mapArr[0].length;
+    ROWS=mapArr.length; COLS=mapArr[0].length;
 
-    const prot = buildProtectedMask(mapArr);
+    const prot=buildProtectedMask(mapArr);
 
     const walls=[];
     for (let r=1;r<ROWS-1;r++){
@@ -897,15 +835,14 @@
       testMap[r]=testRow;
 
       if (!isAllImportantReachable(testMap)) continue;
-
       mapArr=testMap;
       opened++;
     }
 
     for (let p=0;p<RAND.deadendFixPasses;p++){
-      const res=fixDeadEnds(mapArr, prot);
-      mapArr=res.mapArr;
-      if (res.changed===0) break;
+      const next = fixDeadEnds(mapArr, prot);
+      if (next.join("\n") === mapArr.join("\n")) break;
+      mapArr = next;
     }
 
     currentMap = mapArr;
@@ -942,8 +879,7 @@
     return grid[r][c]===1;
   }
 
-  // ===== Entities =====
-  const DIRS = {
+  const DIRS={
     up:{dr:-1,dc:0}, down:{dr:1,dc:0}, left:{dr:0,dc:-1}, right:{dr:0,dc:1}, none:{dr:0,dc:0}
   };
   function opposite(d){
@@ -963,19 +899,13 @@
   }
   function atCenter(x){ return Math.abs(x - Math.round(x)) < 0.05; }
 
-  // ✅ (5) 玩家名稱：由 LINE 名稱自動帶入；沒抓到就 Guest
-  let nickName = "Guest";
+  // ✅ 玩家名稱：OAuth 回來後的 /me
+  let nickName="Guest";
 
-  let score=0;
-  let lives=3;
-
-  let running=false;
-  let paused=false;
-  let lastT=0;
-  let gameTime=0;
-
-  let powerLeft=0;
-  let invincibleLeft=0;
+  let score=0, lives=3;
+  let running=false, paused=false;
+  let lastT=0, gameTime=0;
+  let powerLeft=0, invincibleLeft=0;
   let inCountdown=false;
 
   const player={r:0,c:0,dir:DIRS.left,nextDir:DIRS.left};
@@ -997,45 +927,6 @@
     return {r,c};
   }
 
-  // ===== Overlays =====
-  function openHelp(){ paused=true; helpOverlay.style.display="flex"; }
-  function closeHelp(){ helpOverlay.style.display="none"; paused=false; }
-
-  btnHelp.addEventListener("click", ()=>{
-    ensureAudio();
-    sfxBeep(480,0.03,"sine");
-    openHelp();
-  });
-  helpClose.addEventListener("click", ()=>{
-    ensureAudio();
-    sfxBeep(420,0.03,"sine");
-    closeHelp();
-  });
-  helpStart.addEventListener("click", ()=>{
-    ensureAudio();
-    sfxBeep(620,0.05,"triangle");
-    helpOverlay.style.display="none";
-    paused=false;
-    if (!running) startGameFlow();
-  });
-
-  // ✅ (1) 排行榜只在結算顯示
-  function openLB(){
-    paused=true;
-    renderLB();
-    lbOverlay.style.display="flex";
-  }
-  function closeLB(){
-    lbOverlay.style.display="none";
-    paused=false;
-  }
-  lbClose.addEventListener("click", ()=>{
-    ensureAudio();
-    sfxBeep(420,0.03,"sine");
-    closeLB();
-  });
-
-  // ===== AI helpers =====
   function dist2(a,b){ const dr=a.r-b.r, dc=a.c-b.c; return dr*dr+dc*dc; }
 
   function chooseDirToward(ent, target, avoidOpp=true){
@@ -1053,6 +944,7 @@
     }
     return best;
   }
+
   function chooseDirAway(ent, target){
     const r=Math.round(ent.r), c=Math.round(ent.c);
     const opts=[DIRS.up,DIRS.left,DIRS.down,DIRS.right].filter(d=>canMove(r,c,d));
@@ -1068,6 +960,7 @@
     }
     return best;
   }
+
   function getGhostTarget(g){
     const pr=Math.round(player.r), pc=Math.round(player.c);
     if (g.base==="chaser") return {r:pr,c:pc};
@@ -1101,7 +994,6 @@
 
     if (atCenter(ent.r) && atCenter(ent.c)){
       const r=Math.round(ent.r), c=Math.round(ent.c);
-
       if (ent===player){
         if (canMove(r,c,player.nextDir)) player.dir=player.nextDir;
         else if (!canMove(r,c,player.dir)) player.dir=DIRS.none;
@@ -1144,17 +1036,16 @@
   function tryEat(){
     const r=Math.round(player.r), c=Math.round(player.c);
     const kk=kCell(r,c);
-
     if (leaves.has(kk)){
       leaves.delete(kk);
       score += 1;
-      uiScore.textContent = score;
+      uiScore.textContent=score;
       sfxBeep(680,0.03,"sine");
     }else if (powers.has(kk)){
       powers.delete(kk);
       score += 5;
-      uiScore.textContent = score;
-      powerLeft = POWER_TIME;
+      uiScore.textContent=score;
+      powerLeft=POWER_TIME;
       sfxBeep(260,0.08,"square");
     }
   }
@@ -1164,11 +1055,9 @@
   }
 
   function respawnPlayer(){
-    player.r=playerStart.r;
-    player.c=playerStart.c;
-    player.dir=DIRS.left;
-    player.nextDir=DIRS.left;
-    invincibleLeft = INVINCIBLE_TIME;
+    player.r=playerStart.r; player.c=playerStart.c;
+    player.dir=DIRS.left; player.nextDir=DIRS.left;
+    invincibleLeft=INVINCIBLE_TIME;
 
     const home=findOpenNear(ghostHome.r, ghostHome.c);
     ghosts.forEach((g,i)=>{
@@ -1179,17 +1068,33 @@
     });
   }
 
+  function openHelp(){ paused=true; helpOverlay.style.display="flex"; }
+  function closeHelp(){ helpOverlay.style.display="none"; paused=false; }
+
+  btnHelp.addEventListener("click", ()=>{ ensureAudio(); sfxBeep(480,0.03,"sine"); openHelp(); });
+  helpClose.addEventListener("click", ()=>{ ensureAudio(); sfxBeep(420,0.03,"sine"); closeHelp(); });
+  helpStart.addEventListener("click", async ()=>{
+    ensureAudio();
+    sfxBeep(620,0.05,"triangle");
+    helpOverlay.style.display="none";
+    paused=false;
+    if (!running) await startGameFlow();
+  });
+
+  function openLB(){ paused=true; renderLB(); lbOverlay.style.display="flex"; }
+  function closeLB(){ lbOverlay.style.display="none"; paused=false; }
+  lbClose.addEventListener("click", ()=>{ ensureAudio(); sfxBeep(420,0.03,"sine"); closeLB(); });
+
   function endGame(win){
     running=false;
     paused=false;
     addLB(nickName || "Guest", score);
     updateBest();
-    openLB(); // ✅ 結算才顯示排行榜
+    openLB();
   }
 
-  // ===== Drawing =====
   function drawMapBackground(){
-    ctx.fillStyle = cssVar("--mapBase");
+    ctx.fillStyle=cssVar("--mapBase");
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
     const spot=cssVar("--mapSpot");
@@ -1197,7 +1102,7 @@
     for (let i=0;i<110;i++){
       const x=(i*91)%canvas.width;
       const y=(i*57)%canvas.height;
-      const r=10 + (i*9)%20;
+      const r=10+(i*9)%20;
       ctx.fillStyle=spot;
       ctx.beginPath();
       ctx.ellipse(x,y,r*1.2,r*0.75,(i%12)*0.16,0,Math.PI*2);
@@ -1217,7 +1122,6 @@
     ctx.closePath();
   }
 
-  // ✅ 牆壁條紋（移除斑點）
   function drawWallTile(x,y,size,seed){
     const border=cssVar("--wallBorder");
     const base=cssVar("--wallBase");
@@ -1229,7 +1133,6 @@
     ctx.fill();
     ctx.globalAlpha=1;
 
-    distributeborder:
     ctx.fillStyle=border;
     roundRect(x+1.5, y+1.5, size-3, size-3, 7);
     ctx.fill();
@@ -1307,8 +1210,8 @@
   function drawPowerFruit(x,y,t){
     const p1=cssVar("--power1");
     const p2=cssVar("--power2");
+    const pulse=0.5+0.5*Math.sin(t*6);
 
-    const pulse=0.5 + 0.5*Math.sin(t*6);
     ctx.globalAlpha=0.25 + 0.2*pulse;
     ctx.fillStyle=p1;
     ctx.beginPath(); ctx.arc(x,y,14+2*pulse,0,Math.PI*2); ctx.fill();
@@ -1344,12 +1247,9 @@
     });
   }
 
-  function drawSprite(img, x, y, size, fallback="#111"){
+  function drawSprite(img,x,y,size,fallback="#111"){
     if (img) ctx.drawImage(img, x-size/2, y-size/2, size, size);
-    else{
-      ctx.fillStyle=fallback;
-      ctx.beginPath(); ctx.arc(x,y,size/2,0,Math.PI*2); ctx.fill();
-    }
+    else{ ctx.fillStyle=fallback; ctx.beginPath(); ctx.arc(x,y,size/2,0,Math.PI*2); ctx.fill(); }
   }
 
   function drawPlayerAura(x,y,t){
@@ -1426,7 +1326,6 @@
     }
   }
 
-  // ===== Countdown（開始後 3,2,1） =====
   function showCountdown3(){
     return new Promise((resolve)=>{
       inCountdown=true;
@@ -1434,7 +1333,6 @@
       countdownEl.style.display="flex";
       const seq=[3,2,1];
       let i=0;
-
       const tick=()=>{
         const n=seq[i];
         cdNumEl.textContent=String(n);
@@ -1455,16 +1353,14 @@
     });
   }
 
-  // ===== Reset / Start =====
+  // ===== Game lifecycle =====
   async function resetGame(){
     randomizeMap();
     parseMap();
-    layoutCanvas(); // ✅ 地圖刷新後重新算一次
+    layoutCanvas();
 
-    score=0;
-    lives=3;
-    powerLeft=0;
-    invincibleLeft=0;
+    score=0; lives=3;
+    powerLeft=0; invincibleLeft=0;
     gameTime=0;
 
     player.r=playerStart.r; player.c=playerStart.c;
@@ -1487,13 +1383,31 @@
     await showCountdown3();
   }
 
+  async function ensureLineNameOrLogin(){
+    const me = await fetchMe();
+    if (!me.loggedIn){
+      // 尚未授權：直接導 OAuth
+      startOAuthLogin();
+      return false;
+    }
+    nickName = me.displayName || "Guest";
+    uiName.textContent = nickName;
+    return true;
+  }
+
   async function startGameFlow(){
     ensureAudio();
     if (bgmOn) startBgm();
+
+    // ✅ 點開始才做 OAuth（避免一進頁就跳走）
+    const ok = await ensureLineNameOrLogin();
+    if (!ok) return;
+
     btnStart.textContent="重新開始";
     await resetGame();
   }
 
+  // Start button
   btnStart.addEventListener("click", async ()=>{
     ensureAudio();
     sfxBeep(660,0.05,"triangle");
@@ -1502,13 +1416,14 @@
       return;
     }
     if (inCountdown) return;
+    // 重開前也確保仍有登入（token 過期會再登入）
+    const ok = await ensureLineNameOrLogin();
+    if (!ok) return;
     await resetGame();
   });
 
-  // ===== Game loop =====
   function loop(now){
     const t=now/1000;
-
     if (!running){
       draw(t);
       requestAnimationFrame(loop);
@@ -1546,7 +1461,7 @@
         score += 10;
         uiScore.textContent=score;
         sfxBeep(900,0.06,"triangle");
-        g.respawn = RESPAWN_TIME;
+        g.respawn=RESPAWN_TIME;
         const home=findOpenNear(ghostHome.r, ghostHome.c);
         g.r=home.r; g.c=home.c; g.dir=DIRS.up;
       }else if (g.respawn<=0){
@@ -1570,7 +1485,7 @@
     requestAnimationFrame(loop);
   }
 
-  // ===== Controls =====
+  // Controls
   function bindPad(el, dir){
     el.addEventListener("pointerdown", (e)=>{
       e.preventDefault();
@@ -1593,7 +1508,6 @@
     if (k==="arrowright"||k==="d") player.nextDir=DIRS.right;
   }, {passive:true});
 
-  // ===== Intro =====
   function showIntro(){
     running=false;
     paused=true;
@@ -1601,25 +1515,29 @@
     btnStart.textContent="開始";
   }
 
-  // ===== Init =====
+  // Init
   async function init(){
     randomizeMap();
     parseMap();
     renderLB();
     updateBest();
+    layoutCanvas();
 
-    // ✅ (5) 嘗試導入 LINE 名稱（抓不到就維持 Guest）
-    const lineName = await tryLoadLineName();
-    if (lineName) nickName = lineName;
-
-    uiName.textContent = nickName || "Guest";
-    uiScore.textContent = score;
+    // 先嘗試讀一次 /me（若已授權就直接顯示名）
+    const me = await fetchMe();
+    if (me.loggedIn && me.displayName){
+      nickName = me.displayName;
+      uiName.textContent = nickName;
+    }
 
     await preloadImages();
-
-    layoutCanvas();
     showIntro();
     requestAnimationFrame(loop);
+
+    // 點「開始遊戲」（在玩法按鈕）
+    helpStart.addEventListener("click", async ()=>{
+      if (!running) await startGameFlow();
+    }, { once:false });
   }
   init();
 })();
