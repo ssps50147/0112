@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>阿鹿鹿文創-精靈鹿鹿 GO！</title>
 
+  <!-- ✅ (5) 自動導入 LINE 名稱：若你在 LIFF 內使用，請保留 -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
   <style>
     :root{
       --bg:#fdecef;
@@ -18,7 +21,7 @@
       --btn:#111;
       --btnText:#fff;
 
-      /* 地圖底：暗淡泥土黃色系（含淡斑） */
+      /* 地圖底：暗淡泥土黃色系 */
       --mapBase:#D8C07A;
       --mapSpot:#B28B5E;
 
@@ -27,11 +30,9 @@
       --wallStripe:#B2562E;
       --wallBorder:#2B1A12;
 
-      /* 嫩葉 */
       --leaf1:#1BFF6B;
       --leaf2:#00B84D;
 
-      /* 能量果 */
       --power1:#FFD100;
       --power2:#FF7A00;
 
@@ -67,31 +68,12 @@
       display:flex;
       flex-direction:column;
       gap:8px;
+      flex:0 0 auto;
     }
-    .brandRow{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .brand{
-      font-weight:900;
-      font-size:15px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .sub{
-      font-size:12px;
-      color:var(--muted);
-      margin-top:2px;
-    }
-    .pillRow{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
-    }
+    .brandRow{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .brand{ font-weight:900; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sub{ font-size:12px; color:var(--muted); margin-top:2px; }
+    .pillRow{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
     .pill{
       background: var(--pill);
       border:1px solid var(--line);
@@ -105,32 +87,20 @@
       min-height:34px;
     }
     .pill b{font-weight:900}
-    .pillBtn{
-      cursor:pointer;
-      user-select:none;
-    }
-    .pillBtn:active{transform:translateY(1px)}
-    .pillDark{
-      background: var(--btn);
-      color: var(--btnText);
-      border:1px solid #000;
-    }
+    .pillBtn{ cursor:pointer; user-select:none; }
+    .pillBtn:active{ transform:translateY(1px) }
+    .pillDark{ background: var(--btn); color: var(--btnText); border:1px solid #000; }
 
-    /* ===== Audio panel ===== */
+    /* ===== Audio panel：只保留開關（2）（3 移除暱稱輸入） ===== */
     .audioPanel{
       background: var(--panel);
       border:1px solid var(--line);
       border-radius: var(--radius);
       padding:10px;
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:10px;
-    }
-    .audioRow{
       display:flex;
       align-items:center;
-      justify-content:space-between;
-      gap:12px;
+      gap:22px;
+      flex:0 0 auto;
     }
     .check{
       display:flex;
@@ -139,54 +109,20 @@
       font-size:14px;
     }
     .check input{ width:18px; height:18px; }
-    .vol{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      min-width: 52%;
-      justify-content:flex-end;
-      color:var(--muted);
-      font-size:13px;
-    }
-    input[type="range"]{
-      width: 180px;
-      max-width: 46vw;
-    }
-
-    /* ===== Name row ===== */
-    .nameRow{
-      display:flex;
-      gap:10px;
-      align-items:center;
-    }
-    .nameRow input{
-      flex:1;
-      padding:12px 12px;
-      border-radius: 14px;
-      border:1px solid var(--line);
-      background:#fff;
-      font-size:14px;
-      outline:none;
-    }
-    .applyBtn{
-      padding:12px 14px;
-      border-radius: 14px;
-      border:1px solid var(--line);
-      background:#fff;
-      font-weight:900;
-      cursor:pointer;
-    }
-    .applyBtn:active{transform:translateY(1px)}
     .hint{
+      margin-left:auto;
       font-size:12px;
       color:var(--muted);
       line-height:1.35;
-      padding:0 2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 55%;
     }
 
     /* ===== Game area ===== */
     .gameWrap{
-      flex:1;
+      flex:1 1 auto;
       min-height:0;
       display:flex;
       align-items:center;
@@ -197,13 +133,14 @@
       width:100%;
       max-width: 980px;
       height:auto;
-      max-height: calc(100vh - 260px - var(--safeT) - var(--safeB));
       border-radius: 18px;
       border:1px solid var(--line);
       background:#000;
       display:block;
       touch-action:none;
       image-rendering: pixelated;
+      /* 由 JS 動態計算 max-height，避免被下方按鍵遮蔽（4） */
+      max-height: 100%;
     }
 
     /* ===== Start countdown ===== */
@@ -238,29 +175,27 @@
       letter-spacing:.08em;
     }
 
-    /* ===== Bottom dpad（放大按鍵、吃滿多餘空間） ===== */
+    /* ===== Bottom dpad：放大、吃滿空間（你前一版需求） ===== */
     .dpad{
       background: var(--panel);
       border:1px solid var(--line);
       border-radius: var(--radius);
-
       padding:12px;
 
       display:grid;
       grid-template-columns: 1fr 1fr 1fr;
-      grid-template-rows: 1fr 1fr;     /* ✅ 吃滿空間：兩列自動撐大 */
+      grid-template-rows: 1fr 1fr;
       gap:12px;
 
       align-items:stretch;
       justify-items:stretch;
 
-      /* ✅ 按鍵區有足夠高度，多餘空間用來放大按鍵 */
       height: clamp(170px, 22vh, 240px);
+      flex:0 0 auto;
     }
     .padBtn{
       width:100%;
       height:100%;
-
       border-radius: 20px;
       border:1px solid var(--line);
       background: #fff;
@@ -270,8 +205,8 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      user-select:none;
 
+      user-select:none;
       touch-action: manipulation;
     }
     .padBtn:active{transform:translateY(1px)}
@@ -299,23 +234,9 @@
       padding:14px;
       box-shadow: 0 18px 70px rgba(0,0,0,.35);
     }
-    .modalTitle{
-      font-weight:900;
-      font-size:16px;
-      margin:0 0 8px;
-    }
-    .modalText{
-      margin:0 0 10px;
-      font-size:13px;
-      color:#444;
-      line-height:1.45;
-    }
-    .modalBtns{
-      display:flex;
-      justify-content:flex-end;
-      gap:10px;
-      margin-top:10px;
-    }
+    .modalTitle{ font-weight:900; font-size:16px; margin:0 0 8px; }
+    .modalText{ margin:0 0 10px; font-size:13px; color:#444; line-height:1.45; }
+    .modalBtns{ display:flex; justify-content:flex-end; gap:10px; margin-top:10px; }
     .mBtn{
       border-radius: 14px;
       padding:10px 12px;
@@ -324,38 +245,20 @@
       background:#fff;
       cursor:pointer;
     }
-    .mBtn.dark{
-      background:#111;
-      border-color:#111;
-      color:#fff;
-    }
+    .mBtn.dark{ background:#111; border-color:#111; color:#fff; }
 
-    table{
-      width:100%;
-      border-collapse:collapse;
-      font-size:13px;
-    }
-    th,td{
-      border-bottom:1px solid #eee;
-      padding:8px 8px;
-      text-align:left;
-    }
-    th{color:#444; background:#fafafa}
-
-    .smallNote{
-      font-size:12px;
-      color:#666;
-      margin-top:8px;
-      line-height:1.35;
-    }
+    table{ width:100%; border-collapse:collapse; font-size:13px; }
+    th,td{ border-bottom:1px solid #eee; padding:8px 8px; text-align:left; }
+    th{ color:#444; background:#fafafa }
+    .smallNote{ font-size:12px; color:#666; margin-top:8px; line-height:1.35; }
   </style>
 </head>
 
 <body>
-  <div class="app">
+  <div class="app" id="appRoot">
 
     <!-- ===== Topbar ===== -->
-    <div class="topbar">
+    <div class="topbar" id="topbar">
       <div class="brandRow">
         <div>
           <div class="brand">阿鹿鹿文創-精靈鹿鹿 GO！</div>
@@ -367,49 +270,27 @@
         <div class="pill"><span>分數</span> <b id="uiScore">0</b></div>
         <div class="pill"><span>最高</span> <b id="uiBest">0</b></div>
 
-        <div class="pill pillBtn" id="btnLB">查詢排行榜</div>
         <div class="pill pillBtn" id="btnHelp">玩法</div>
         <div class="pill pillBtn pillDark" id="btnStart">開始</div>
+        <!-- ✅ (1) 移除「查詢排行榜」按鈕 -->
       </div>
     </div>
 
-    <!-- ===== Audio Panel ===== -->
-    <div class="audioPanel">
-      <div class="audioRow">
-        <div class="check">
-          <input type="checkbox" id="chkBgm" checked />
-          <label for="chkBgm">BGM</label>
-        </div>
-        <div class="vol">
-          <span>音量</span>
-          <input type="range" id="bgmVol" min="0" max="100" value="55" />
-        </div>
+    <!-- ===== Audio Panel：只保留開關 ===== -->
+    <div class="audioPanel" id="audioPanel">
+      <div class="check">
+        <input type="checkbox" id="chkBgm" checked />
+        <label for="chkBgm">BGM</label>
       </div>
-
-      <div class="audioRow">
-        <div class="check">
-          <input type="checkbox" id="chkSfx" checked />
-          <label for="chkSfx">音效</label>
-        </div>
-        <div class="vol">
-          <span>音量</span>
-          <input type="range" id="sfxVol" min="0" max="100" value="65" />
-        </div>
+      <div class="check">
+        <input type="checkbox" id="chkSfx" checked />
+        <label for="chkSfx">音效</label>
       </div>
-
-      <div class="nameRow">
-        <input id="nameInput" maxlength="12" placeholder="輸入暱稱（可選）" />
-        <button class="applyBtn" id="btnApply">套用</button>
-      </div>
-
-      <div class="hint">
-        排行榜使用 LocalStorage（免後端）。<br/>
-        LINE/iOS 需第一次點擊後才允許播放聲音（已處理）。
-      </div>
+      <div class="hint">LINE/iOS 需第一次點擊後才允許播放聲音（已處理）。</div>
     </div>
 
     <!-- ===== Game ===== -->
-    <div class="gameWrap">
+    <div class="gameWrap" id="gameWrap">
       <canvas id="game" width="840" height="510"></canvas>
 
       <div class="countdown" id="countdown">
@@ -421,7 +302,7 @@
     </div>
 
     <!-- ===== D-pad ===== -->
-    <div class="dpad">
+    <div class="dpad" id="dpad">
       <div class="padBtn padLeft"  id="padLeft">←</div>
       <div class="padBtn padUp"    id="padUp">↑</div>
       <div class="padBtn padRight" id="padRight">→</div>
@@ -437,16 +318,9 @@
         🦌 <b>操作：</b>方向鍵移動（手機點下方方向鍵；桌機方向鍵/WASD）。<br/>
         🍃 <b>嫩葉點：</b>地圖上的 <b>小嫩葉</b>，吃到 <b>+1 分</b>。<br/>
         🍍 <b>能量果：</b>地圖上的 <b>金色能量果</b>，吃到 <b>+5 分</b>，並進入 <b>強化模式（7 秒）</b>。<br/><br/>
-        ⚡ <b>強化模式（7 秒）：</b><br/>
-        ・你身上會有 <b>更明顯的金色光亮/光環</b>（HUD 會顯示「強化」）。<br/>
-        ・敵人會出現 <b>藍色弱化光圈</b>，且 <b>移動速度降低</b>（可目視）。<br/>
-        ・碰到弱化敵人可 <b>反吃 +10 分</b>。<br/><br/>
-        💥 <b>失敗：</b>非強化時碰到敵人：<b>-1 生命</b>並重生。<br/>
-        ✨ <b>重生無敵：</b>每次重生後有 <b>3 秒無敵</b>（你身上會有 <b>特殊光亮</b>，避免剛重生就被碰到）。<br/><br/>
-        🏃 <b>速度說明：</b><br/>
-        ・玩家速度：<b>固定</b>。<br/>
-        ・敵人速度：開局為玩家的 <b>75%</b>，會隨遊戲時間逐步增加，上限 <b>不超過玩家 95%</b>。<br/>
-        ・弱化（強化期間）敵人速度：會再降低。<br/>
+        ⚡ <b>強化模式（7 秒）：</b>敵人會有 <b>藍色弱化光圈</b>、速度變慢；碰到可 <b>反吃 +10 分</b>。<br/>
+        ✨ <b>重生無敵：</b>每次重生後 <b>3 秒無敵</b>（身上有特殊光亮）。<br/>
+        🏃 <b>速度：</b>敵人開局為玩家 <b>75%</b>，隨時間增加，上限 <b>不超過 95%</b>。<br/>
       </div>
       <div class="modalBtns">
         <button class="mBtn" id="helpClose">關閉</button>
@@ -455,7 +329,7 @@
     </div>
   </div>
 
-  <!-- ===== Leaderboard Overlay ===== -->
+  <!-- ===== Leaderboard Overlay（只在結算時顯示） ===== -->
   <div class="overlay" id="lbOverlay">
     <div class="modal">
       <div class="modalTitle">排行榜（保留 7 天，僅顯示前 6 名）</div>
@@ -475,6 +349,25 @@
 
 <script>
 (() => {
+  // =========================
+  // (5) LIFF：自動導入 LINE 名稱
+  // =========================
+  // ✅ 若你要在 LIFF 正式環境使用：把這裡改成你的 LIFF ID
+  const LIFF_ID = "2008825801-LXHTWx5N"; // 例："2001234567-xxxxxxxx"
+
+  async function tryLoadLineName(){
+    try{
+      if (!window.liff) return null;
+      if (!LIFF_ID) return null; // 沒填就不初始化，避免一般網頁報錯
+      await liff.init({ liffId: LIFF_ID });
+      if (!liff.isLoggedIn()) return null;
+      const p = await liff.getProfile();
+      return (p && p.displayName) ? p.displayName : null;
+    }catch(e){
+      return null;
+    }
+  }
+
   // ===== Assets =====
   const IMG = {
     player: "https://raw.githubusercontent.com/z883662/Aruru/main/lulu1.png",
@@ -507,6 +400,11 @@
   ];
 
   // ===== DOM =====
+  const appRoot = document.getElementById("appRoot");
+  const topbar = document.getElementById("topbar");
+  const audioPanel = document.getElementById("audioPanel");
+  const dpad = document.getElementById("dpad");
+
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
 
@@ -516,15 +414,9 @@
 
   const btnStart = document.getElementById("btnStart");
   const btnHelp  = document.getElementById("btnHelp");
-  const btnLB    = document.getElementById("btnLB");
 
   const chkBgm = document.getElementById("chkBgm");
   const chkSfx = document.getElementById("chkSfx");
-  const bgmVol = document.getElementById("bgmVol");
-  const sfxVol = document.getElementById("sfxVol");
-
-  const nameInput = document.getElementById("nameInput");
-  const btnApply  = document.getElementById("btnApply");
 
   const padLeft  = document.getElementById("padLeft");
   const padUp    = document.getElementById("padUp");
@@ -555,8 +447,26 @@
     return `${yy}-${mm}-${dd}`;
   }
 
-  // ===== Leaderboard =====
-  const LB_KEY = "aruru_maze_lb_v1";
+  // =========================
+  // (4) 重新計算畫布可用高度：避免下方按鍵遮蔽
+  // =========================
+  function layoutCanvas(){
+    // appRoot 有 padding + gap，這裡抓實際 offsetHeight 計算
+    const appH = appRoot.clientHeight;
+    const topH = topbar.offsetHeight;
+    const audH = audioPanel.offsetHeight;
+    const dpadH = dpad.offsetHeight;
+
+    // gap 估算：app gap=10px，topbar/audio/game/dpad 之間大約 3 個 gap
+    const gaps = 10 * 3;
+
+    const available = Math.max(120, appH - topH - audH - dpadH - gaps);
+    canvas.style.maxHeight = available + "px";
+  }
+  window.addEventListener("resize", layoutCanvas);
+
+  // ===== Leaderboard（只結算時顯示）（1） =====
+  const LB_KEY = "aruru_maze_lb_v2";
   const KEEP_MS = 7*24*60*60*1000;
 
   function loadLB(){
@@ -584,7 +494,7 @@
   }
   function renderLB(){
     const lb = loadLB();
-    lbHint.textContent = lb.length ? "目前排行榜如下：" : "目前沒有紀錄（你會是第一名）";
+    lbHint.textContent = lb.length ? "本局結算 & 目前排行榜：" : "目前沒有紀錄（你會是第一名）";
     lbBody.innerHTML = lb.map((r,i)=>(
       `<tr><td>${i+1}</td><td>${escapeHtml(r.name)}</td><td>${r.score}</td><td>${fmtDate(r.ts)}</td></tr>`
     )).join("") || `<tr><td colspan="4" style="color:#777">目前沒有紀錄</td></tr>`;
@@ -594,7 +504,7 @@
     uiBest.textContent = lb.length ? lb[0].score : 0;
   }
 
-  // ===== Audio =====
+  // ===== Audio（2：移除音量滑桿，只保留開關） =====
   let audioCtx = null;
   let unlocked = false;
 
@@ -606,17 +516,16 @@
   let bgmNextTime = 0;
   let bgmStep = 0;
 
+  // 固定溫和音量（不再由 slider 控制）
+  const BGM_VOL = 0.12;
+  const SFX_VOL = 0.90;
+
   function ensureAudio(){
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === "suspended") audioCtx.resume();
     unlocked = true;
   }
   window.addEventListener("pointerdown", ensureAudio, {passive:true});
-
-  function setBgmVolume(){
-    const v = (Number(bgmVol.value)||0)/100;
-    if (bgmGain) bgmGain.gain.value = v * 0.14;
-  }
 
   function midiToHz(m){ return 440*Math.pow(2,(m-69)/12); }
 
@@ -643,6 +552,7 @@
     const lookAhead = 0.12;
     const now = audioCtx.currentTime;
 
+    // 輕鬆愉快 BGM（簡單旋律）
     const melody = [
       72, 76, 79, 76, 74, 76, 72, 0,
       72, 76, 79, 84, 83, 79, 76, 0
@@ -654,7 +564,6 @@
 
     while (bgmNextTime < now + lookAhead){
       const idx = bgmStep % melody.length;
-
       const m = melody[idx];
       if (m){
         const f = midiToHz(m);
@@ -665,7 +574,6 @@
       if (b){
         playTone(midiToHz(b), bgmNextTime, stepDur*0.95, "sine", 0.05);
       }
-
       bgmNextTime += stepDur;
       bgmStep++;
     }
@@ -676,9 +584,8 @@
     if (bgmTimer) return;
 
     bgmGain = audioCtx.createGain();
-    bgmGain.gain.value = 0.0001;
+    bgmGain.gain.value = BGM_VOL;
     bgmGain.connect(audioCtx.destination);
-    setBgmVolume();
 
     bgmNextTime = audioCtx.currentTime + 0.04;
     bgmStep = 0;
@@ -699,22 +606,20 @@
     }
   }
 
-  // (1) BUG 音效：改為輕鬆愉快（泡泡啵啵感），用短音符 + 輕快包絡
+  // ✅ BUG 音效：輕鬆愉快 boop（固定音量）
   function sfxBug(){
     if (!unlocked || !sfxOn) return;
-    const v = (Number(sfxVol.value)||0)/100;
-    const baseG = 0.028 * v;
     const t0 = audioCtx.currentTime;
 
     const o = audioCtx.createOscillator();
     const g = audioCtx.createGain();
     o.type = "triangle";
 
-    // little “boop-boop” glide
     o.frequency.setValueAtTime(520, t0);
     o.frequency.exponentialRampToValueAtTime(760, t0+0.035);
     o.frequency.exponentialRampToValueAtTime(560, t0+0.075);
 
+    const baseG = 0.03 * SFX_VOL;
     g.gain.setValueAtTime(0.0001, t0);
     g.gain.exponentialRampToValueAtTime(Math.max(0.0001, baseG), t0+0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t0+0.11);
@@ -726,16 +631,17 @@
 
   function sfxBeep(freq=520, dur=0.05, type="sine"){
     if (!unlocked || !sfxOn) return;
-    const v = (Number(sfxVol.value)||0)/100;
-    const g0 = 0.03 * v;
-
     const t0 = audioCtx.currentTime;
+
     const o = audioCtx.createOscillator();
     const g = audioCtx.createGain();
     o.type = type;
     o.frequency.setValueAtTime(freq, t0);
+
+    const g0 = 0.03 * SFX_VOL;
     g.gain.setValueAtTime(Math.max(0.0001, g0), t0);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
     o.connect(g).connect(audioCtx.destination);
     o.start(t0);
     o.stop(t0 + dur);
@@ -747,7 +653,6 @@
     if (bgmOn) startBgm(); else stopBgm();
   });
   chkSfx.addEventListener("change", ()=>{ sfxOn = chkSfx.checked; });
-  bgmVol.addEventListener("input", ()=>{ setBgmVolume(); });
 
   // ===== Images preload =====
   const images = {};
@@ -769,7 +674,7 @@
     }
   }
 
-  // ===== Map state =====
+  // ===== Game map state =====
   const TILE = 30;
 
   let currentMap = BASE_MAP.slice();
@@ -796,7 +701,7 @@
   const WEAK_RATIO = 0.72;
   const RESPAWN_TIME = 1.2;
 
-  // ===== Random maze (avoid dead ends as much as possible) =====
+  // ===== Random maze：盡量避免死路、確保關鍵點可達 =====
   const RAND = {
     maxHoleOpens: 28,
     attempts: 380,
@@ -804,7 +709,7 @@
     deadendFixPasses: 2
   };
 
-  function k(r,c){ return r+","+c; }
+  function kCell(r,c){ return r+","+c; }
 
   function buildProtectedMask(mapArr){
     const prot = Array.from({length:ROWS}, ()=> Array(COLS).fill(false));
@@ -812,9 +717,7 @@
     for (let r=0;r<ROWS;r++){
       for (let c=0;c<COLS;c++){
         const ch = mapArr[r][c];
-        if (ch==="P" || ch==="G" || ch==="o"){
-          important.push({r,c});
-        }
+        if (ch==="P" || ch==="G" || ch==="o") important.push({r,c});
       }
     }
     for (const p of important){
@@ -837,10 +740,10 @@
         if (mapArr[r][c]==="P"){ sr=r; sc=c; break; }
       }
     }
-    const q = [{r:sr,c:sc}];
-    const vis = Array.from({length:ROWS}, ()=> Array(COLS).fill(false));
+    const q=[{r:sr,c:sc}];
+    const vis=Array.from({length:ROWS}, ()=> Array(COLS).fill(false));
     vis[sr][sc]=true;
-    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    const dirs=[[-1,0],[1,0],[0,-1],[0,1]];
     while(q.length){
       const cur=q.shift();
       for (const [dr,dc] of dirs){
@@ -848,7 +751,7 @@
         let cc=cur.c+dc;
         if (cc<0) cc=COLS-1;
         if (cc>=COLS) cc=0;
-        if (rr<0 || rr>=ROWS) continue;
+        if (rr<0||rr>=ROWS) continue;
         if (vis[rr][cc]) continue;
         if (mapArr[rr][cc]==="#") continue;
         vis[rr][cc]=true;
@@ -859,39 +762,35 @@
   }
 
   function isAllImportantReachable(mapArr){
-    const vis = bfsReachable(mapArr);
+    const vis=bfsReachable(mapArr);
     for (let r=0;r<ROWS;r++){
       for (let c=0;c<COLS;c++){
-        const ch = mapArr[r][c];
-        if ((ch==="G" || ch==="o") && !vis[r][c]) return false;
+        const ch=mapArr[r][c];
+        if ((ch==="G"||ch==="o") && !vis[r][c]) return false;
       }
     }
     let edible=0;
     for (let r=0;r<ROWS;r++){
       for (let c=0;c<COLS;c++){
-        const ch = mapArr[r][c];
-        if ((ch==="." || ch==="o") && vis[r][c]) edible++;
+        const ch=mapArr[r][c];
+        if ((ch==="."||ch==="o") && vis[r][c]) edible++;
       }
     }
-    return edible >= 18;
+    return edible>=18;
   }
 
   function passable(mapArr,r,c){
-    if (r<0 || r>=ROWS) return false;
-    if (c<0 || c>=COLS) return false;
-    return mapArr[r][c] !== "#";
+    if (r<0||r>=ROWS||c<0||c>=COLS) return false;
+    return mapArr[r][c]!=="#";
   }
 
   function degree4(mapArr,r,c){
     let deg=0;
-    const up = (r-1>=0) ? passable(mapArr,r-1,c) : false;
+    const up   = (r-1>=0) ? passable(mapArr,r-1,c) : false;
     const down = (r+1<ROWS) ? passable(mapArr,r+1,c) : false;
     const left = passable(mapArr,r,(c-1+COLS)%COLS);
     const right= passable(mapArr,r,(c+1)%COLS);
-    if (up) deg++;
-    if (down) deg++;
-    if (left) deg++;
-    if (right) deg++;
+    if (up) deg++; if (down) deg++; if (left) deg++; if (right) deg++;
     return deg;
   }
 
@@ -901,21 +800,16 @@
     for (let r=1;r<ROWS-1;r++){
       for (let c=0;c<COLS;c++){
         if (prot[r][c]) continue;
-        const ch = mapArr[r][c];
-        if (ch==="#") continue;
-        const deg = degree4(mapArr,r,c);
-        if (deg===1) candidates.push({r,c});
+        if (mapArr[r][c]==="#") continue;
+        if (degree4(mapArr,r,c)===1) candidates.push({r,c});
       }
     }
-
     for (let i=candidates.length-1;i>0;i--){
-      const j = (Math.random()*(i+1))|0;
+      const j=(Math.random()*(i+1))|0;
       [candidates[i],candidates[j]]=[candidates[j],candidates[i]];
     }
 
-    const dirs = [
-      {dr:-1,dc:0},{dr:1,dc:0},{dr:0,dc:-1},{dr:0,dc:1}
-    ];
+    const dirs=[{dr:-1,dc:0},{dr:1,dc:0},{dr:0,dc:-1},{dr:0,dc:1}];
 
     for (const cell of candidates){
       const r=cell.r, c=cell.c;
@@ -927,28 +821,23 @@
         let cc=c+d.dc;
         if (cc<0) cc=COLS-1;
         if (cc>=COLS) cc=0;
-        if (rr<=0 || rr>=ROWS-1) continue;
+        if (rr<=0||rr>=ROWS-1) continue;
         if (prot[rr][cc]) continue;
-
-        if (mapArr[rr][cc] !== "#") continue;
+        if (mapArr[rr][cc]!=="#") continue;
 
         let score=0;
         const r2=rr+d.dr;
         let c2=cc+d.dc;
         if (c2<0) c2=COLS-1;
         if (c2>=COLS) c2=0;
-        if (r2>0 && r2<ROWS-1 && mapArr[r2][c2] !== "#") score+=2;
+        if (r2>0 && r2<ROWS-1 && mapArr[r2][c2]!=="#") score+=2;
 
-        // estimate deg if opened
         let estDeg=0;
-        const up = (rr-1>=0) ? (mapArr[rr-1][cc] !== "#") : false;
-        const down = (rr+1<ROWS) ? (mapArr[rr+1][cc] !== "#") : false;
-        const left = (mapArr[rr][(cc-1+COLS)%COLS] !== "#");
-        const right= (mapArr[rr][(cc+1)%COLS] !== "#");
-        if (up) estDeg++;
-        if (down) estDeg++;
-        if (left) estDeg++;
-        if (right) estDeg++;
+        const up = (rr-1>=0) ? (mapArr[rr-1][cc]!=="#") : false;
+        const down=(rr+1<ROWS) ? (mapArr[rr+1][cc]!=="#") : false;
+        const left=(mapArr[rr][(cc-1+COLS)%COLS]!=="#");
+        const right=(mapArr[rr][(cc+1)%COLS]!=="#");
+        if (up) estDeg++; if (down) estDeg++; if (left) estDeg++; if (right) estDeg++;
         score += (estDeg<=2)?1:0;
 
         if (score>bestScore){ bestScore=score; best={rr,cc}; }
@@ -959,11 +848,11 @@
       const row = mapArr[best.rr];
       const testRow = row.slice(0,best.cc) + "." + row.slice(best.cc+1);
       const testMap = mapArr.slice();
-      testMap[best.rr] = testRow;
+      testMap[best.rr]=testRow;
 
       if (!isAllImportantReachable(testMap)) continue;
 
-      mapArr = testMap;
+      mapArr=testMap;
       changed++;
     }
 
@@ -984,9 +873,8 @@
         if (mapArr[r][c]==="#") walls.push({r,c});
       }
     }
-
     for (let i=walls.length-1;i>0;i--){
-      const j = (Math.random()*(i+1))|0;
+      const j=(Math.random()*(i+1))|0;
       [walls[i],walls[j]]=[walls[j],walls[i]];
     }
 
@@ -996,30 +884,27 @@
       const r=w.r, c=w.c;
 
       let neighWall=0;
-      const up = (mapArr[r-1][c]==="#");
+      const up=(mapArr[r-1][c]==="#");
       const down=(mapArr[r+1][c]==="#");
       const left=(mapArr[r][c-1]==="#");
       const right=(mapArr[r][c+1]==="#");
-      if (up) neighWall++;
-      if (down) neighWall++;
-      if (left) neighWall++;
-      if (right) neighWall++;
+      if (up) neighWall++; if (down) neighWall++; if (left) neighWall++; if (right) neighWall++;
       if (neighWall<2) continue;
 
-      const row = mapArr[r];
-      const testRow = row.slice(0,c) + "." + row.slice(c+1);
-      const testMap = mapArr.slice();
-      testMap[r] = testRow;
+      const row=mapArr[r];
+      const testRow=row.slice(0,c) + "." + row.slice(c+1);
+      const testMap=mapArr.slice();
+      testMap[r]=testRow;
 
       if (!isAllImportantReachable(testMap)) continue;
 
-      mapArr = testMap;
+      mapArr=testMap;
       opened++;
     }
 
     for (let p=0;p<RAND.deadendFixPasses;p++){
-      const res = fixDeadEnds(mapArr, prot);
-      mapArr = res.mapArr;
+      const res=fixDeadEnds(mapArr, prot);
+      mapArr=res.mapArr;
       if (res.changed===0) break;
     }
 
@@ -1027,8 +912,8 @@
   }
 
   function parseMap(){
-    ROWS = currentMap.length;
-    COLS = currentMap[0].length;
+    ROWS=currentMap.length;
+    COLS=currentMap[0].length;
 
     canvas.width = COLS*TILE;
     canvas.height = ROWS*TILE;
@@ -1038,12 +923,12 @@
     for (let r=0;r<ROWS;r++){
       const row=[];
       for (let c=0;c<COLS;c++){
-        const ch = currentMap[r][c] || "#";
-        const isW = ch==="#";
+        const ch=currentMap[r][c] || "#";
+        const isW=(ch==="#");
         row.push(isW?1:0);
 
-        if (ch===".") leaves.add(k(r,c));
-        if (ch==="o") powers.add(k(r,c));
+        if (ch===".") leaves.add(kCell(r,c));
+        if (ch==="o") powers.add(kCell(r,c));
         if (ch==="P") playerStart={r,c};
         if (ch==="G") ghostHome={r,c};
       }
@@ -1078,44 +963,43 @@
   }
   function atCenter(x){ return Math.abs(x - Math.round(x)) < 0.05; }
 
+  // ✅ (5) 玩家名稱：由 LINE 名稱自動帶入；沒抓到就 Guest
   let nickName = "Guest";
-  let score = 0;
-  let lives = 3;
 
-  let running = false;
-  let paused = false;
-  let lastT = 0;
-  let gameTime = 0;
+  let score=0;
+  let lives=3;
 
-  let powerLeft = 0;
-  let invincibleLeft = 0;
+  let running=false;
+  let paused=false;
+  let lastT=0;
+  let gameTime=0;
 
-  let inCountdown = false;
+  let powerLeft=0;
+  let invincibleLeft=0;
+  let inCountdown=false;
 
-  const player = {r:0,c:0,dir:DIRS.left,nextDir:DIRS.left};
+  const player={r:0,c:0,dir:DIRS.left,nextDir:DIRS.left};
 
-  const ghosts = [
+  const ghosts=[
     {imgKey:"dad",   r:0,c:0,dir:DIRS.left,  base:"chaser", respawn:0, patrolIndex:0},
     {imgKey:"mom",   r:0,c:0,dir:DIRS.right, base:"ambush", respawn:0, patrolIndex:1},
     {imgKey:"water", r:0,c:0,dir:DIRS.up,    base:"patrol", respawn:0, patrolIndex:2},
     {imgKey:"angry", r:0,c:0,dir:DIRS.down,  base:"random", respawn:0, patrolIndex:3},
   ];
-  const patrolCorners = [
-    {r:1,c:1},{r:1,c:COLS-2},{r:ROWS-2,c:1},{r:ROWS-2,c:COLS-2}
-  ];
+  const patrolCorners=[{r:1,c:1},{r:1,c:COLS-2},{r:ROWS-2,c:1},{r:ROWS-2,c:COLS-2}];
 
   function findOpenNear(r,c){
     const offs=[[0,0],[0,-1],[0,1],[-1,0],[1,0],[0,-2],[0,2],[-2,0],[2,0]];
     for (const [dr,dc] of offs){
       const rr=r+dr, cc=c+dc;
-      if (rr>=0 && rr<ROWS && cc>=0 && cc<COLS && !isWall(rr,cc)) return {r:rr,c:cc};
+      if (rr>=0&&rr<ROWS&&cc>=0&&cc<COLS&&!isWall(rr,cc)) return {r:rr,c:cc};
     }
     return {r,c};
   }
 
   // ===== Overlays =====
-  function openHelp(){ paused = true; helpOverlay.style.display = "flex"; }
-  function closeHelp(){ helpOverlay.style.display = "none"; paused = false; }
+  function openHelp(){ paused=true; helpOverlay.style.display="flex"; }
+  function closeHelp(){ helpOverlay.style.display="none"; paused=false; }
 
   btnHelp.addEventListener("click", ()=>{
     ensureAudio();
@@ -1130,30 +1014,25 @@
   helpStart.addEventListener("click", ()=>{
     ensureAudio();
     sfxBeep(620,0.05,"triangle");
-    helpOverlay.style.display = "none";
-    paused = false;
+    helpOverlay.style.display="none";
+    paused=false;
     if (!running) startGameFlow();
   });
 
-  function openLB(){ paused = true; renderLB(); lbOverlay.style.display = "flex"; }
-  function closeLB(){ lbOverlay.style.display = "none"; paused = false; }
-  btnLB.addEventListener("click", ()=>{
-    ensureAudio();
-    sfxBeep(520,0.04,"sine");
-    openLB();
-  });
+  // ✅ (1) 排行榜只在結算顯示
+  function openLB(){
+    paused=true;
+    renderLB();
+    lbOverlay.style.display="flex";
+  }
+  function closeLB(){
+    lbOverlay.style.display="none";
+    paused=false;
+  }
   lbClose.addEventListener("click", ()=>{
     ensureAudio();
     sfxBeep(420,0.03,"sine");
     closeLB();
-  });
-
-  btnApply.addEventListener("click", ()=>{
-    ensureAudio();
-    const v = (nameInput.value||"").trim();
-    nickName = v ? v.slice(0,12) : "Guest";
-    uiName.textContent = nickName;
-    sfxBeep(520,0.04,"sine");
   });
 
   // ===== AI helpers =====
@@ -1213,58 +1092,59 @@
   }
 
   function ghostRatioByTime(){
-    const t = clamp(gameTime / GHOST_RAMP_SECS, 0, 1);
-    return 0.75 + (0.95 - 0.75) * t;
+    const t=clamp(gameTime / GHOST_RAMP_SECS, 0, 1);
+    return GHOST_MIN_RATIO + (GHOST_MAX_RATIO - GHOST_MIN_RATIO) * t;
   }
 
   function stepEntity(ent, dt, speed){
-    const move = speed * dt;
+    const move=speed*dt;
 
     if (atCenter(ent.r) && atCenter(ent.c)){
       const r=Math.round(ent.r), c=Math.round(ent.c);
 
       if (ent===player){
-        if (canMove(r,c,player.nextDir)) player.dir = player.nextDir;
-        else if (!canMove(r,c,player.dir)) player.dir = DIRS.none;
+        if (canMove(r,c,player.nextDir)) player.dir=player.nextDir;
+        else if (!canMove(r,c,player.dir)) player.dir=DIRS.none;
       }else{
         if (ent.respawn>0){
-          ent.dir = chooseDirToward(ent, ghostHome, true);
+          ent.dir=chooseDirToward(ent, ghostHome, true);
         }else if (powerLeft>0){
-          ent.dir = chooseDirAway(ent, {r:Math.round(player.r), c:Math.round(player.c)});
+          ent.dir=chooseDirAway(ent, {r:Math.round(player.r), c:Math.round(player.c)});
         }else{
           if (ent.base==="random"){
             const opts=[DIRS.up,DIRS.left,DIRS.down,DIRS.right].filter(d=>canMove(r,c,d));
             const filtered=opts.filter(d=>d!==opposite(ent.dir));
-            const list = filtered.length?filtered:opts;
-            if (list.length) ent.dir = list[Math.floor(Math.random()*list.length)];
+            const list=filtered.length?filtered:opts;
+            if (list.length) ent.dir=list[Math.floor(Math.random()*list.length)];
           }else{
-            ent.dir = chooseDirToward(ent, getGhostTarget(ent), true);
+            ent.dir=chooseDirToward(ent, getGhostTarget(ent), true);
           }
         }
       }
     }
 
-    let nr = ent.r + ent.dir.dr*move;
-    let nc = ent.c + ent.dir.dc*move;
+    let nr=ent.r + ent.dir.dr*move;
+    let nc=ent.c + ent.dir.dc*move;
 
     if (nc<0) nc=COLS-0.01;
     if (nc>=COLS) nc=0.01;
 
-    if (ent.dir !== DIRS.none){
-      const tr = Math.round(nr);
-      const tc = Math.round(nc);
+    if (ent.dir!==DIRS.none){
+      const tr=Math.round(nr);
+      const tc=Math.round(nc);
       if (tr>=0 && tr<ROWS && !isWall(tr,tc)){
-        ent.r = nr; ent.c = nc;
+        ent.r=nr; ent.c=nc;
       }else{
-        ent.r = Math.round(ent.r);
-        ent.c = Math.round(ent.c);
+        ent.r=Math.round(ent.r);
+        ent.c=Math.round(ent.c);
       }
     }
   }
 
   function tryEat(){
     const r=Math.round(player.r), c=Math.round(player.c);
-    const kk=r+","+c;
+    const kk=kCell(r,c);
+
     if (leaves.has(kk)){
       leaves.delete(kk);
       score += 1;
@@ -1302,9 +1182,9 @@
   function endGame(win){
     running=false;
     paused=false;
-    addLB(nickName, score);
+    addLB(nickName || "Guest", score);
     updateBest();
-    openLB();
+    openLB(); // ✅ 結算才顯示排行榜
   }
 
   // ===== Drawing =====
@@ -1312,18 +1192,18 @@
     ctx.fillStyle = cssVar("--mapBase");
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    const spot = cssVar("--mapSpot");
-    ctx.globalAlpha = 0.18;
+    const spot=cssVar("--mapSpot");
+    ctx.globalAlpha=0.18;
     for (let i=0;i<110;i++){
-      const x = (i*91)%canvas.width;
-      const y = (i*57)%canvas.height;
-      const r = 10 + (i*9)%20;
-      ctx.fillStyle = spot;
+      const x=(i*91)%canvas.width;
+      const y=(i*57)%canvas.height;
+      const r=10 + (i*9)%20;
+      ctx.fillStyle=spot;
       ctx.beginPath();
       ctx.ellipse(x,y,r*1.2,r*0.75,(i%12)*0.16,0,Math.PI*2);
       ctx.fill();
     }
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=1;
   }
 
   function roundRect(x,y,w,h,r){
@@ -1337,22 +1217,24 @@
     ctx.closePath();
   }
 
+  // ✅ 牆壁條紋（移除斑點）
   function drawWallTile(x,y,size,seed){
-    const border = cssVar("--wallBorder");
-    const base   = cssVar("--wallBase");
-    const stripe = cssVar("--wallStripe");
+    const border=cssVar("--wallBorder");
+    const base=cssVar("--wallBase");
+    const stripe=cssVar("--wallStripe");
 
-    ctx.globalAlpha = 0.32;
-    ctx.fillStyle = "#000";
+    ctx.globalAlpha=0.32;
+    ctx.fillStyle="#000";
     roundRect(x+3, y+4, size-6, size-6, 7);
     ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=1;
 
-    ctx.fillStyle = border;
+    distributeborder:
+    ctx.fillStyle=border;
     roundRect(x+1.5, y+1.5, size-3, size-3, 7);
     ctx.fill();
 
-    ctx.fillStyle = base;
+    ctx.fillStyle=base;
     roundRect(x+4, y+4, size-8, size-8, 6);
     ctx.fill();
 
@@ -1360,35 +1242,34 @@
     roundRect(x+4, y+4, size-8, size-8, 6);
     ctx.clip();
 
-    ctx.globalAlpha = 0.78;
-    ctx.strokeStyle = stripe;
-    ctx.lineWidth = 6;
+    ctx.globalAlpha=0.78;
+    ctx.strokeStyle=stripe;
+    ctx.lineWidth=6;
 
-    const offset = (seed % 20) - 10;
+    const offset=(seed % 20) - 10;
     for (let i=-40;i<40;i++){
-      const x0 = x + i*10 + offset;
+      const x0=x + i*10 + offset;
       ctx.beginPath();
       ctx.moveTo(x0, y-10);
       ctx.lineTo(x0 + size + 20, y + size + 30);
       ctx.stroke();
     }
-
     ctx.restore();
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=1;
 
-    ctx.globalAlpha = 0.28;
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 1.2;
+    ctx.globalAlpha=0.28;
+    ctx.strokeStyle="#fff";
+    ctx.lineWidth=1.2;
     roundRect(x+6, y+6, size-12, size-12, 5.5);
     ctx.stroke();
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=1;
   }
 
   function drawWalls(){
     for (let r=0;r<ROWS;r++){
       for (let c=0;c<COLS;c++){
         if (grid[r][c]!==1) continue;
-        const seed = (r*131 + c*197)>>>0;
+        const seed=(r*131 + c*197)>>>0;
         drawWallTile(c*TILE, r*TILE, TILE, seed);
       }
     }
@@ -1398,34 +1279,22 @@
     const a=cssVar("--leaf1");
     const b=cssVar("--leaf2");
 
-    ctx.globalAlpha = 0.25;
-    ctx.fillStyle = a;
-    ctx.beginPath();
-    ctx.arc(x,y,7,0,Math.PI*2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=0.25;
+    ctx.fillStyle=a;
+    ctx.beginPath(); ctx.arc(x,y,7,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
 
-    ctx.strokeStyle = b;
-    ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    ctx.moveTo(x-1,y+4);
-    ctx.lineTo(x+2,y+7);
-    ctx.stroke();
+    ctx.strokeStyle=b; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(x-1,y+4); ctx.lineTo(x+2,y+7); ctx.stroke();
 
-    ctx.fillStyle = a;
-    ctx.beginPath();
-    ctx.ellipse(x-2,y,4.6,3.0,-0.65,0,Math.PI*2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(x+2,y+1,4.6,3.0,0.65,0,Math.PI*2);
-    ctx.fill();
+    ctx.fillStyle=a;
+    ctx.beginPath(); ctx.ellipse(x-2,y,4.6,3.0,-0.65,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+2,y+1,4.6,3.0,0.65,0,Math.PI*2); ctx.fill();
 
-    ctx.globalAlpha = 0.45;
-    ctx.fillStyle = "#fff";
-    ctx.beginPath();
-    ctx.ellipse(x-2,y-0.8,1.8,1.0,-0.65,0,Math.PI*2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=0.45;
+    ctx.fillStyle="#fff";
+    ctx.beginPath(); ctx.ellipse(x-2,y-0.8,1.8,1.0,-0.65,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
   }
 
   function drawLeaves(){
@@ -1439,39 +1308,33 @@
     const p1=cssVar("--power1");
     const p2=cssVar("--power2");
 
-    const pulse = 0.5 + 0.5*Math.sin(t*6);
-    ctx.globalAlpha = 0.25 + 0.2*pulse;
-    ctx.fillStyle = p1;
-    ctx.beginPath();
-    ctx.arc(x,y, 14+2*pulse, 0, Math.PI*2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
+    const pulse=0.5 + 0.5*Math.sin(t*6);
+    ctx.globalAlpha=0.25 + 0.2*pulse;
+    ctx.fillStyle=p1;
+    ctx.beginPath(); ctx.arc(x,y,14+2*pulse,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
 
-    const g = ctx.createRadialGradient(x-3,y-4,2, x,y,11);
+    const g=ctx.createRadialGradient(x-3,y-4,2, x,y,11);
     g.addColorStop(0,"#fff6c9");
     g.addColorStop(0.45,p1);
     g.addColorStop(1,p2);
 
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.ellipse(x,y,10,11,0,0,Math.PI*2);
-    ctx.fill();
+    ctx.fillStyle=g;
+    ctx.beginPath(); ctx.ellipse(x,y,10,11,0,0,Math.PI*2); ctx.fill();
 
-    ctx.globalAlpha = 0.65;
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 1.2;
+    ctx.globalAlpha=0.65;
+    ctx.strokeStyle="#fff";
+    ctx.lineWidth=1.2;
     ctx.beginPath();
     ctx.moveTo(x-12,y); ctx.lineTo(x-7,y);
     ctx.moveTo(x+7,y); ctx.lineTo(x+12,y);
     ctx.moveTo(x,y-12); ctx.lineTo(x,y-7);
     ctx.moveTo(x,y+7); ctx.lineTo(x,y+12);
     ctx.stroke();
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=1;
 
-    ctx.fillStyle = cssVar("--leaf1");
-    ctx.beginPath();
-    ctx.ellipse(x+5,y-11,4.2,2.4,-0.5,0,Math.PI*2);
-    ctx.fill();
+    ctx.fillStyle=cssVar("--leaf1");
+    ctx.beginPath(); ctx.ellipse(x+5,y-11,4.2,2.4,-0.5,0,Math.PI*2); ctx.fill();
   }
 
   function drawPowers(t){
@@ -1482,53 +1345,42 @@
   }
 
   function drawSprite(img, x, y, size, fallback="#111"){
-    if (img){
-      ctx.drawImage(img, x-size/2, y-size/2, size, size);
-    }else{
+    if (img) ctx.drawImage(img, x-size/2, y-size/2, size, size);
+    else{
       ctx.fillStyle=fallback;
-      ctx.beginPath();
-      ctx.arc(x,y,size/2,0,Math.PI*2);
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(x,y,size/2,0,Math.PI*2); ctx.fill();
     }
   }
 
   function drawPlayerAura(x,y,t){
     if (powerLeft>0){
       const pulse=0.5+0.5*Math.sin(t*9);
-      ctx.globalAlpha = 0.35 + 0.25*pulse;
-      ctx.fillStyle = cssVar("--power1");
-      ctx.beginPath();
-      ctx.arc(x,y, 18+3*pulse, 0, Math.PI*2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha=0.35 + 0.25*pulse;
+      ctx.fillStyle=cssVar("--power1");
+      ctx.beginPath(); ctx.arc(x,y,18+3*pulse,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
     }
     if (invincibleLeft>0){
       const pulse=0.5+0.5*Math.sin(t*12);
-      ctx.globalAlpha = 0.25 + 0.35*pulse;
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(x,y, 22+4*pulse, 0, Math.PI*2);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha=0.25 + 0.35*pulse;
+      ctx.strokeStyle="#fff";
+      ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(x,y,22+4*pulse,0,Math.PI*2); ctx.stroke();
+      ctx.globalAlpha=1;
     }
   }
 
   function drawGhostWeakRing(x,y,t){
     const pulse=0.5+0.5*Math.sin(t*8);
-    ctx.globalAlpha = 0.22 + 0.20*pulse;
-    ctx.fillStyle = cssVar("--blueWeak");
-    ctx.beginPath();
-    ctx.arc(x,y, 18+4*pulse, 0, Math.PI*2);
-    ctx.fill();
+    ctx.globalAlpha=0.22 + 0.20*pulse;
+    ctx.fillStyle=cssVar("--blueWeak");
+    ctx.beginPath(); ctx.arc(x,y,18+4*pulse,0,Math.PI*2); ctx.fill();
 
-    ctx.globalAlpha = 0.55;
-    ctx.strokeStyle = "#bfe8ff";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(x,y, 22+4*pulse, 0, Math.PI*2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha=0.55;
+    ctx.strokeStyle="#bfe8ff";
+    ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(x,y,22+4*pulse,0,Math.PI*2); ctx.stroke();
+    ctx.globalAlpha=1;
   }
 
   function draw(t){
@@ -1537,73 +1389,68 @@
     drawLeaves();
     drawPowers(t);
 
-    const px = player.c*TILE + TILE/2;
-    const py = player.r*TILE + TILE/2;
+    const px=player.c*TILE + TILE/2;
+    const py=player.r*TILE + TILE/2;
     drawPlayerAura(px,py,t);
     drawSprite(images.player, px, py, 26, "#333");
 
     ghosts.forEach(g=>{
-      const gx = g.c*TILE + TILE/2;
-      const gy = g.r*TILE + TILE/2;
+      const gx=g.c*TILE + TILE/2;
+      const gy=g.r*TILE + TILE/2;
 
-      if (g.respawn>0) ctx.globalAlpha = 0.55;
+      if (g.respawn>0) ctx.globalAlpha=0.55;
 
       if (powerLeft>0 && g.respawn<=0){
         drawGhostWeakRing(gx,gy,t+(g.r+g.c)*0.2);
-        ctx.globalAlpha = 0.85;
-        ctx.fillStyle = "rgba(46,168,255,0.20)";
-        ctx.beginPath();
-        ctx.arc(gx,gy,14,0,Math.PI*2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha=0.85;
+        ctx.fillStyle="rgba(46,168,255,0.20)";
+        ctx.beginPath(); ctx.arc(gx,gy,14,0,Math.PI*2); ctx.fill();
+        ctx.globalAlpha=1;
       }
 
       drawSprite(images[g.imgKey], gx, gy, 26, "#111");
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha=1;
     });
 
     if (powerLeft>0 || invincibleLeft>0){
-      ctx.globalAlpha = 0.75;
-      ctx.fillStyle = "rgba(0,0,0,.35)";
+      ctx.globalAlpha=0.75;
+      ctx.fillStyle="rgba(0,0,0,.35)";
       ctx.fillRect(8,8, 210, 28);
-      ctx.globalAlpha = 1;
-      ctx.font = "bold 14px system-ui, -apple-system, Segoe UI";
+      ctx.globalAlpha=1;
+      ctx.font="bold 14px system-ui, -apple-system, Segoe UI";
       ctx.fillStyle = powerLeft>0 ? cssVar("--power1") : "#fff";
-      let text = "";
+      let text="";
       if (powerLeft>0) text += `強化 ${powerLeft.toFixed(1)}s `;
       if (invincibleLeft>0) text += `無敵 ${invincibleLeft.toFixed(1)}s`;
       ctx.fillText(text.trim(), 14, 27);
     }
   }
 
-  // ===== Countdown =====
+  // ===== Countdown（開始後 3,2,1） =====
   function showCountdown3(){
     return new Promise((resolve)=>{
-      inCountdown = true;
-      paused = true;
-      countdownEl.style.display = "flex";
+      inCountdown=true;
+      paused=true;
+      countdownEl.style.display="flex";
+      const seq=[3,2,1];
+      let i=0;
 
-      const seq = [3,2,1];
-      let i = 0;
-
-      const tick = ()=>{
-        const n = seq[i];
-        cdNumEl.textContent = String(n);
+      const tick=()=>{
+        const n=seq[i];
+        cdNumEl.textContent=String(n);
         sfxBeep(520 + (3-n)*80, 0.04, "triangle");
-
         i++;
-        if (i >= seq.length){
+        if (i>=seq.length){
           setTimeout(()=>{
-            countdownEl.style.display = "none";
-            paused = false;
-            inCountdown = false;
+            countdownEl.style.display="none";
+            paused=false;
+            inCountdown=false;
             resolve();
           }, 220);
           return;
         }
         setTimeout(tick, 800);
       };
-
       tick();
     });
   }
@@ -1612,12 +1459,13 @@
   async function resetGame(){
     randomizeMap();
     parseMap();
+    layoutCanvas(); // ✅ 地圖刷新後重新算一次
 
-    score = 0;
-    lives = 3;
-    powerLeft = 0;
-    invincibleLeft = 0;
-    gameTime = 0;
+    score=0;
+    lives=3;
+    powerLeft=0;
+    invincibleLeft=0;
+    gameTime=0;
 
     player.r=playerStart.r; player.c=playerStart.c;
     player.dir=DIRS.left; player.nextDir=DIRS.left;
@@ -1631,10 +1479,10 @@
       g.patrolIndex=i%patrolCorners.length;
     });
 
-    running = true;
-    lastT = performance.now();
-    uiScore.textContent = score;
-    uiName.textContent = nickName;
+    running=true;
+    lastT=performance.now();
+    uiScore.textContent=score;
+    uiName.textContent=nickName || "Guest";
 
     await showCountdown3();
   }
@@ -1642,26 +1490,24 @@
   async function startGameFlow(){
     ensureAudio();
     if (bgmOn) startBgm();
-    btnStart.textContent = "重新開始";
+    btnStart.textContent="重新開始";
     await resetGame();
   }
 
   btnStart.addEventListener("click", async ()=>{
     ensureAudio();
     sfxBeep(660,0.05,"triangle");
-
     if (!running){
       openHelp();
       return;
     }
     if (inCountdown) return;
-
     await resetGame();
   });
 
   // ===== Game loop =====
   function loop(now){
-    const t = now/1000;
+    const t=now/1000;
 
     if (!running){
       draw(t);
@@ -1669,8 +1515,8 @@
       return;
     }
 
-    const dt = Math.min(0.04, (now - lastT)/1000);
-    lastT = now;
+    const dt=Math.min(0.04, (now-lastT)/1000);
+    lastT=now;
 
     if (paused){
       draw(t);
@@ -1679,8 +1525,8 @@
     }
 
     gameTime += dt;
-    if (powerLeft>0) powerLeft = Math.max(0, powerLeft - dt);
-    if (invincibleLeft>0) invincibleLeft = Math.max(0, invincibleLeft - dt);
+    if (powerLeft>0) powerLeft=Math.max(0, powerLeft-dt);
+    if (invincibleLeft>0) invincibleLeft=Math.max(0, invincibleLeft-dt);
 
     stepEntity(player, dt, SPEED_PLAYER);
     tryEat();
@@ -1689,7 +1535,7 @@
     if (powerLeft>0) ghostSpeed *= WEAK_RATIO;
 
     ghosts.forEach(g=>{
-      if (g.respawn>0) g.respawn = Math.max(0, g.respawn - dt);
+      if (g.respawn>0) g.respawn=Math.max(0, g.respawn-dt);
       stepEntity(g, dt, ghostSpeed);
     });
 
@@ -1698,21 +1544,17 @@
 
       if (powerLeft>0 && g.respawn<=0){
         score += 10;
-        uiScore.textContent = score;
+        uiScore.textContent=score;
         sfxBeep(900,0.06,"triangle");
         g.respawn = RESPAWN_TIME;
         const home=findOpenNear(ghostHome.r, ghostHome.c);
-        g.r=home.r; g.c=home.c;
-        g.dir=DIRS.up;
+        g.r=home.r; g.c=home.c; g.dir=DIRS.up;
       }else if (g.respawn<=0){
         if (invincibleLeft<=0){
           lives -= 1;
-          sfxBug(); // ✅ 改成輕鬆愉快的 BUG 音效
-          if (lives<=0){
-            endGame(false);
-            break;
-          }
-          powerLeft = 0;
+          sfxBug();
+          if (lives<=0){ endGame(false); break; }
+          powerLeft=0;
           respawnPlayer();
         }
         break;
@@ -1733,7 +1575,7 @@
     el.addEventListener("pointerdown", (e)=>{
       e.preventDefault();
       ensureAudio();
-      player.nextDir = dir;
+      player.nextDir=dir;
       sfxBeep(520,0.02,"sine");
     }, {passive:false});
   }
@@ -1744,32 +1586,38 @@
 
   window.addEventListener("keydown", (e)=>{
     ensureAudio();
-    const k = e.key.toLowerCase();
-    if (k==="arrowup" || k==="w") player.nextDir=DIRS.up;
-    if (k==="arrowdown" || k==="s") player.nextDir=DIRS.down;
-    if (k==="arrowleft" || k==="a") player.nextDir=DIRS.left;
-    if (k==="arrowright" || k==="d") player.nextDir=DIRS.right;
+    const k=e.key.toLowerCase();
+    if (k==="arrowup"||k==="w") player.nextDir=DIRS.up;
+    if (k==="arrowdown"||k==="s") player.nextDir=DIRS.down;
+    if (k==="arrowleft"||k==="a") player.nextDir=DIRS.left;
+    if (k==="arrowright"||k==="d") player.nextDir=DIRS.right;
   }, {passive:true});
 
+  // ===== Intro =====
   function showIntro(){
-    running = false;
-    paused = true;
-    helpOverlay.style.display = "flex";
-    btnStart.textContent = "開始";
+    running=false;
+    paused=true;
+    helpOverlay.style.display="flex";
+    btnStart.textContent="開始";
   }
 
   // ===== Init =====
   async function init(){
     randomizeMap();
     parseMap();
-
     renderLB();
     updateBest();
-    uiName.textContent = nickName;
+
+    // ✅ (5) 嘗試導入 LINE 名稱（抓不到就維持 Guest）
+    const lineName = await tryLoadLineName();
+    if (lineName) nickName = lineName;
+
+    uiName.textContent = nickName || "Guest";
     uiScore.textContent = score;
 
     await preloadImages();
 
+    layoutCanvas();
     showIntro();
     requestAnimationFrame(loop);
   }
